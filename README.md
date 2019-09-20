@@ -1,4 +1,4 @@
-![GitHub Logo](https//github.com/technosar/media/blob/master/grbl32%20logo.png)
+![GitHub Logo](https//github.com/technosar/media/grbl32 logo.png)
 ***
 
 ### Grbl v1.1 STM32F7 has been released !
