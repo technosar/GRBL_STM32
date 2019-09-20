@@ -1,4 +1,4 @@
-![GitHub Logo](https://github.com/gnea/gnea-Media/blob/master/Grbl%20Logo/Grbl%20Logo%20250px.png?raw=true)
+![GitHub Logo](https://https://github.com/technosar/media/blob/master/grbl32%20logo.png?raw=true)
 ***
 
 ### Grbl v1.1 STM32F7 has been released !
