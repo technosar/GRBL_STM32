@@ -69,10 +69,8 @@
 void MX_GPIO_Init(void);
 
 /* USER CODE BEGIN Prototypes */
-
 void GPIO_WritePort(GPIO_TypeDef* GPIOx, uint16_t GPIO_Pin);
 uint16_t GPIO_ReadPort(GPIO_TypeDef* GPIOx);
-
 /* USER CODE END Prototypes */
 
 #ifdef __cplusplus

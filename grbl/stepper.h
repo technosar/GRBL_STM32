@@ -23,8 +23,11 @@
 #define stepper_h
 
 #ifndef SEGMENT_BUFFER_SIZE
-#define SEGMENT_BUFFER_SIZE 10
+  #define SEGMENT_BUFFER_SIZE 6
 #endif
+
+// Initialize and setup the stepper motor subsystem
+void stepper_init();
 
 // Enable steppers, but cycle does not start unless called by motion control or realtime command.
 void st_wake_up();
@@ -52,9 +55,5 @@ void st_update_plan_block_parameters();
 
 // Called by realtime status reporting if realtime rate reporting is enabled in config.h.
 float st_get_realtime_rate();
-
-extern const PORTPINDEF step_pin_mask[N_AXIS];
-extern const PORTPINDEF direction_pin_mask[N_AXIS];
-extern const PORTPINDEF limit_pin_mask[N_AXIS];
 
 #endif

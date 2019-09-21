@@ -37,7 +37,10 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN 0 */
+#include "..\grbl\grbl.h"
+#include "usbd_cdc_if.h"
 extern uint32_t timestamp;
+extern StPulseMSRemaining PulseMSRemaining;
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
@@ -162,6 +165,15 @@ void SysTick_Handler(void)
   /* USER CODE END SysTick_IRQn 0 */
   osSystickHandler();
   /* USER CODE BEGIN SysTick_IRQn 1 */
+  if (HAL_GPIO_ReadPin(LED_RX_GPIO_Port, LED_RX_Pin)) {
+	  PulseMSRemaining.RxLEDPulse--;
+	  if (PulseMSRemaining.RxLEDPulse == 0 ) CDC_led_rx_on(0);
+  }
+
+  if (HAL_GPIO_ReadPin(LED_TX_GPIO_Port, LED_TX_Pin)) {
+  	  PulseMSRemaining.TxLEDPulse--;
+  	  if (PulseMSRemaining.TxLEDPulse == 0 ) CDC_led_tx_on(0);
+    }
 
   /* USER CODE END SysTick_IRQn 1 */
 }
@@ -188,6 +200,21 @@ void DMA1_Stream4_IRQHandler(void)
 }
 
 /**
+* @brief This function handles EXTI line[9:5] interrupts.
+*/
+void EXTI9_5_IRQHandler(void)
+{
+  /* USER CODE BEGIN EXTI9_5_IRQn 0 */
+
+  /* USER CODE END EXTI9_5_IRQn 0 */
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_8);
+  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
+  /* USER CODE BEGIN EXTI9_5_IRQn 1 */
+
+  /* USER CODE END EXTI9_5_IRQn 1 */
+}
+
+/**
 * @brief This function handles TIM1 update interrupt and TIM10 global interrupt.
 */
 void TIM1_UP_TIM10_IRQHandler(void)
@@ -199,7 +226,6 @@ void TIM1_UP_TIM10_IRQHandler(void)
   HAL_TIM_IRQHandler(&htim10);
   /* USER CODE BEGIN TIM1_UP_TIM10_IRQn 1 */
   timestamp++;
-
   /* USER CODE END TIM1_UP_TIM10_IRQn 1 */
 }
 
@@ -237,35 +263,15 @@ void TIM3_IRQHandler(void)
 void EXTI15_10_IRQHandler(void)
 {
   /* USER CODE BEGIN EXTI15_10_IRQn 0 */
-
+  _EXTI15_10_IRQHandler();
   /* USER CODE END EXTI15_10_IRQn 0 */
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_10);
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_11);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_12);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_14);
   HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_15);
   /* USER CODE BEGIN EXTI15_10_IRQn 1 */
 
-  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_15) != RESET)
-  {
-  	EXTI_IRQHandler(GPIO_PIN_15);
-  }
-
-  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_14) != RESET)
-  {
-	  EXTI_IRQHandler(GPIO_PIN_14);
-  }
-
-  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_13) != RESET)
-  {
-	  EXTI_IRQHandler(GPIO_PIN_13);
-  }
-  
-  if(__HAL_GPIO_EXTI_GET_IT(GPIO_PIN_12) != RESET)
-  {
-  	EXTI_IRQHandler(GPIO_PIN_12);
-  }
   /* USER CODE END EXTI15_10_IRQn 1 */
 }
 

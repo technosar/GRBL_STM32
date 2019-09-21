@@ -46,7 +46,6 @@
 #define MODAL_GROUP_M8 13 // [M7,M8,M9] Coolant control
 #define MODAL_GROUP_M9 14 // [M56] Override control
 
-
 // Define command actions for within execution-type modal groups (motion, stopping, non-modal). Used
 // internally by the parser to know which command to execute.
 // NOTE: Some macro values are assigned specific values to make g-code state reporting and parsing 
@@ -76,14 +75,6 @@
 #define MOTION_MODE_PROBE_AWAY 142 // G38.4 (Do not alter value)
 #define MOTION_MODE_PROBE_AWAY_NO_ERROR 143 // G38.5 (Do not alter value)
 #define MOTION_MODE_NONE 80 // G80 (Do not alter value)
-
-#if 0
-#define MOTION_MODE_PROBE_TOWARD 4 // G38.2 NOTE: G38.2, G38.3, G38.4, G38.5 must be sequential. See report_gcode_modes().
-#define MOTION_MODE_PROBE_TOWARD_NO_ERROR 5 // G38.3
-#define MOTION_MODE_PROBE_AWAY 6 // G38.4
-#define MOTION_MODE_PROBE_AWAY_NO_ERROR 7 // G38.5
-#define MOTION_MODE_NONE 8 // G80
-#endif
 
 // Modal Group G2: Plane select
 #define PLANE_SELECT_XY 0 // G17 (Default: Must be zero)
@@ -116,11 +107,7 @@
 #define CUTTER_COMP_DISABLE 0 // G40 (Default: Must be zero)
 
 // Modal Group G13: Control mode
-typedef enum {              // G Modal Group 13
-    EXACT_PATH = 0,    // G61 - hits corners but does not stop if it does not need to.
-    EXACT_STOP,        // G61.1 - stops at all corners
-    CONTINUOUS_PATH    // G64 and typically the default mode
-} mcPathControl;
+#define CONTROL_MODE_EXACT_PATH 0 // G61 (Default: Must be zero)
 
 // Modal Group M7: Spindle control
 #define SPINDLE_DISABLE 0 // M5 (Default: Must be zero)
@@ -138,17 +125,15 @@ typedef enum {              // G Modal Group 13
 
 // Modal Group M9: Override control
 #ifdef DEACTIVATE_PARKING_UPON_INIT
-	#define OVERRIDE_DISABLED  0 // (Default: Must be zero)
-	#define OVERRIDE_PARKING_MOTION 1 // M56
+  #define OVERRIDE_DISABLED  0 // (Default: Must be zero)
+  #define OVERRIDE_PARKING_MOTION 1 // M56
 #else
-	#define OVERRIDE_PARKING_MOTION 0 // M56 (Default: Must be zero)
-	#define OVERRIDE_DISABLED  1 // Parking disabled.
+  #define OVERRIDE_PARKING_MOTION 0 // M56 (Default: Must be zero)
+  #define OVERRIDE_DISABLED  1 // Parking disabled.
 #endif
 
 // Modal Group G12: Active work coordinate system
 // N/A: Stores coordinate system value (54-59) to change to.
-
-#define COORD_SYSTEM 0 // G54 default
 
 // Define parameter word mapping.
 #define WORD_F  0
@@ -164,7 +149,6 @@ typedef enum {              // G Modal Group 13
 #define WORD_X  10
 #define WORD_Y  11
 #define WORD_Z  12
-#define WORD_A  13
 
 // Define g-code parser position updating flags
 #define GC_UPDATE_POS_TARGET   0 // Must be zero
@@ -193,6 +177,7 @@ typedef enum {              // G Modal Group 13
 #define GC_PARSER_LASER_DISABLE         bit(6)
 #define GC_PARSER_LASER_ISMOTION        bit(7)
 
+
 // NOTE: When this struct is zeroed, the above defines set the defaults for the system.
 typedef struct {
   uint8_t motion;          // {G0,G1,G2,G3,G38.2,G80}
@@ -204,7 +189,7 @@ typedef struct {
   // uint8_t cutter_comp;  // {G40} NOTE: Don't track. Only default supported.
   uint8_t tool_length;     // {G43.1,G49}
   uint8_t coord_select;    // {G54,G55,G56,G57,G58,G59}
-  mcPathControl control;   // {G61, G61.1, G64} NOTE: Don't track. Only default supported.
+  // uint8_t control;      // {G61} NOTE: Don't track. Only default supported.
   uint8_t program_flow;    // {M0,M1,M2,M30}
   uint8_t coolant;         // {M7,M8,M9}
   uint8_t spindle;         // {M3,M4,M5}
@@ -213,7 +198,7 @@ typedef struct {
 
 typedef struct {
   float f;         // Feed
-  float ijk[N_AXIS];    // I,J,K Axis arc offsets
+  float ijk[3];    // I,J,K Axis arc offsets
   uint8_t l;       // G10 or canned cycles parameters
   int32_t n;       // Line number
   float p;         // G10 or dwell parameters
@@ -221,7 +206,7 @@ typedef struct {
   float r;         // Arc radius
   float s;         // Spindle speed
   uint8_t t;       // Tool selection
-  float xyz[N_AXIS];    // X,Y,Z Translational axes and C rotation axe
+  float xyz[3];    // X,Y,Z Translational axes
 } gc_values_t;
 
 

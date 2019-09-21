@@ -52,15 +52,15 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */     
-#include "grbl.h"
-
+#include "..\grbl\grbl.h"
+extern ADC_HandleTypeDef hadc1;
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
 osThreadId defaultTaskHandle;
 
 /* USER CODE BEGIN Variables */
-uint32_t adc_buff[5];
+
 /* USER CODE END Variables */
 
 /* Function prototypes -------------------------------------------------------*/
@@ -115,8 +115,13 @@ void StartDefaultTask(void const * argument)
   MX_USB_DEVICE_Init();
 
   /* USER CODE BEGIN StartDefaultTask */
-  grbl_init();
+  // Start all ADC
+  HAL_ADC_Start(&hadc1);
+  //@HAL_ADC_Start_DMA(&hadc1, (uint32_t*)_setup.parameters_ext, 5);
 
+  /* USER CODE BEGIN StartDefaultTask */
+
+  grbl_init();
   /* Infinite loop */
   for(;;)
   {

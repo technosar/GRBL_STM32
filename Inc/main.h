@@ -59,46 +59,49 @@
 
 /* Private define ------------------------------------------------------------*/
 
+#define LED_TX_Pin GPIO_PIN_4
+#define LED_TX_GPIO_Port GPIOH
 #define STEPPERS_DISABLE_BIT_Pin GPIO_PIN_2
 #define STEPPERS_DISABLE_BIT_GPIO_Port GPIOB
 #define LIMIT_X_Pin GPIO_PIN_8
 #define LIMIT_X_GPIO_Port GPIOE
+#define LIMIT_X_EXTI_IRQn EXTI9_5_IRQn
 #define LIMIT_Y_Pin GPIO_PIN_9
 #define LIMIT_Y_GPIO_Port GPIOE
+#define LIMIT_Y_EXTI_IRQn EXTI9_5_IRQn
 #define LIMIT_Z_Pin GPIO_PIN_10
 #define LIMIT_Z_GPIO_Port GPIOE
-#define LIMIT_A_Pin GPIO_PIN_11
-#define LIMIT_A_GPIO_Port GPIOE
-#define IN_4_Pin GPIO_PIN_12
-#define IN_4_GPIO_Port GPIOE
-#define IN_5_Pin GPIO_PIN_13
-#define IN_5_GPIO_Port GPIOE
-#define IN_6_Pin GPIO_PIN_14
-#define IN_6_GPIO_Port GPIOE
-#define PROBE_Pin GPIO_PIN_15
+#define LIMIT_Z_EXTI_IRQn EXTI15_10_IRQn
+#define UI0_Pin GPIO_PIN_11
+#define UI0_GPIO_Port GPIOE
+#define UI1_Pin GPIO_PIN_12
+#define UI1_GPIO_Port GPIOE
+#define UI2_Pin GPIO_PIN_13
+#define UI2_GPIO_Port GPIOE
+#define PROBE_Pin GPIO_PIN_14
 #define PROBE_GPIO_Port GPIOE
-#define IN_8_Pin GPIO_PIN_8
-#define IN_8_GPIO_Port GPIOD
-#define IN_9_Pin GPIO_PIN_9
-#define IN_9_GPIO_Port GPIOD
-#define IN_10_Pin GPIO_PIN_10
-#define IN_10_GPIO_Port GPIOD
-#define IN_10_EXTI_IRQn EXTI15_10_IRQn
-#define IN_11_Pin GPIO_PIN_11
-#define IN_11_GPIO_Port GPIOD
-#define IN_11_EXTI_IRQn EXTI15_10_IRQn
-#define IN_12_Pin GPIO_PIN_12
-#define IN_12_GPIO_Port GPIOD
-#define IN_12_EXTI_IRQn EXTI15_10_IRQn
-#define IN_13_Pin GPIO_PIN_13
-#define IN_13_GPIO_Port GPIOD
-#define IN_13_EXTI_IRQn EXTI15_10_IRQn
-#define IN_14_Pin GPIO_PIN_14
-#define IN_14_GPIO_Port GPIOD
-#define IN_14_EXTI_IRQn EXTI15_10_IRQn
-#define IN_15_Pin GPIO_PIN_15
-#define IN_15_GPIO_Port GPIOD
-#define IN_15_EXTI_IRQn EXTI15_10_IRQn
+#define UI3_Pin GPIO_PIN_15
+#define UI3_GPIO_Port GPIOE
+#define UI4_Pin GPIO_PIN_8
+#define UI4_GPIO_Port GPIOD
+#define UI5_Pin GPIO_PIN_9
+#define UI5_GPIO_Port GPIOD
+#define UI6_Pin GPIO_PIN_10
+#define UI6_GPIO_Port GPIOD
+#define UI7_Pin GPIO_PIN_11
+#define UI7_GPIO_Port GPIOD
+#define CONTROL_SAFETY_DOOR_Pin GPIO_PIN_12
+#define CONTROL_SAFETY_DOOR_GPIO_Port GPIOD
+#define CONTROL_SAFETY_DOOR_EXTI_IRQn EXTI15_10_IRQn
+#define CONTROL_CYCLE_START_Pin GPIO_PIN_13
+#define CONTROL_CYCLE_START_GPIO_Port GPIOD
+#define CONTROL_CYCLE_START_EXTI_IRQn EXTI15_10_IRQn
+#define CONTROL_FEED_HOLD_Pin GPIO_PIN_14
+#define CONTROL_FEED_HOLD_GPIO_Port GPIOD
+#define CONTROL_FEED_HOLD_EXTI_IRQn EXTI15_10_IRQn
+#define CONTROL_RESET_Pin GPIO_PIN_15
+#define CONTROL_RESET_GPIO_Port GPIOD
+#define CONTROL_RESET_EXTI_IRQn EXTI15_10_IRQn
 #define CLK_X_Pin GPIO_PIN_0
 #define CLK_X_GPIO_Port GPIOD
 #define DIR_X_Pin GPIO_PIN_1
@@ -115,6 +118,8 @@
 #define CLK_A_GPIO_Port GPIOD
 #define DIR_A_Pin GPIO_PIN_7
 #define DIR_A_GPIO_Port GPIOD
+#define LED_RX_Pin GPIO_PIN_7
+#define LED_RX_GPIO_Port GPIOB
 
 /* ########################## Assert Selection ############################## */
 /**
@@ -124,7 +129,7 @@
 /* #define USE_FULL_ASSERT    1U */
 
 /* USER CODE BEGIN Private defines */
-#define LIMIT_GPIO_Port GPIOE
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

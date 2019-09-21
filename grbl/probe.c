@@ -19,7 +19,7 @@
 */
 
 #include "grbl.h"
-
+#include "gpio.h"
 
 // Inverts the probe pin state depending on user settings and probing cycle mode.
 uint16_t probe_invert_mask;
@@ -28,14 +28,6 @@ uint16_t probe_invert_mask;
 // Probe pin initialization routine.
 void probe_init()
 {
-	GPIO_InitTypeDef GPIO_InitStruct;
-
-	/*Configure GPIO pin : PtPin */
-	GPIO_InitStruct.Pin = PROBE_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	HAL_GPIO_Init(PROBE_GPIO_Port, &GPIO_InitStruct);
-
   probe_configure_invert_mask(false); // Initialize invert mask.
 }
 
@@ -45,25 +37,18 @@ void probe_init()
 // and the probing cycle modes for toward-workpiece/away-from-workpiece.
 void probe_configure_invert_mask(uint8_t is_probe_away)
 {
-
-  probe_invert_mask = 0;
-
-  if (bit_isfalse(settings.flags,BITFLAG_INVERT_PROBE_PIN))
-  {
-	  probe_invert_mask ^= PROBE_MASK;
-  }
-  if (is_probe_away)
-  {
-	  probe_invert_mask ^= PROBE_MASK;
-  }
+  probe_invert_mask = 0; // Initialize as zero.
+  if (bit_isfalse(settings.flags,BITFLAG_INVERT_PROBE_PIN)) { probe_invert_mask ^= PROBE_MASK; }
+  if (is_probe_away) { probe_invert_mask ^= PROBE_MASK; }
 }
 
 
 // Returns the probe pin state. Triggered = true. Called by gcode parser and probe state monitor.
-uint16_t probe_get_state()
-{ 
-//	return (((HAL_GPIO_ReadPin(PROBE_GPIO_Port, PROBE_Pin))<<PROBE_MASK) ^ probe_invert_mask);
-	return ((GPIO_ReadPort(PROBE_GPIO_Port) & PROBE_MASK) ^ probe_invert_mask);
+uint8_t probe_get_state() {
+	uint8_t probe_state = 0;
+	uint16_t pin = (GPIO_ReadPort(PROBE_GPIO_Port) & PROBE_MASK) ^ probe_invert_mask;
+	if (pin & get_probe_pin_mask()) {probe_state |= 1;}
+	return probe_state;
 }
 
 

@@ -59,7 +59,6 @@
 #include "gpio.h"
 
 /* USER CODE BEGIN Includes */
-#include "param.h"
 
 /* USER CODE END Includes */
 
@@ -125,7 +124,6 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_Encoder_Start(&htim5, TIM_CHANNEL_ALL);
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
   /* USER CODE END 2 */
@@ -249,6 +247,9 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
   if (htim->Instance == TIM2) {
 	  _TIM2_IRQHandler();
     }
+  if (htim->Instance == TIM3) {
+  	  _TIM3_IRQHandler();
+      }
   /* USER CODE END Callback 1 */
 }
 

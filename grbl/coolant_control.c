@@ -18,10 +18,10 @@
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "grbl.h"
 #include "cpu_map.h"
 #include "system.h"
 
+extern uint16_t outputs_state;
 extern SPI_HandleTypeDef hspi2;
 
 void coolant_init()
@@ -34,13 +34,11 @@ void coolant_init()
 uint8_t coolant_get_state()
 {
   uint8_t cl_state = COOLANT_STATE_DISABLE;
-
   cl_state = (uint8_t)outputs_state & COOLANT_STATE_FLOOD;
 
-#ifdef ENABLE_M7
-  cl_state |= (outputs_state & COOLANT_STATE_MIST);
-#endif
-
+  #ifdef ENABLE_M7
+    cl_state |= (outputs_state & COOLANT_STATE_MIST);
+  #endif
   return(cl_state);
 }
 
@@ -55,7 +53,7 @@ void coolant_stop()
 	outputs_state &= ~COOLANT_STATE_MIST;
 #endif
 
-	HAL_SPI_Transmit_DMA(&hspi2,(uint8_t*)&outputs_state, 2);
+	HAL_SPI_Transmit_DMA(&hspi2, (uint8_t*)&outputs_state, 2);
 }
 
 
@@ -65,20 +63,22 @@ void coolant_stop()
 // parser program end, and g-code parser coolant_sync().
 void coolant_set_state(uint8_t mode)
 {
-  if (sys.abort) { return; } // Block during abort.  
-  
-  if (mode == COOLANT_DISABLE) {
-  
-    coolant_stop(); 
-  
-  } else {
-	  outputs_state |= COOLANT_STATE_FLOOD;
-#ifdef ENABLE_M7
-	  outputs_state |= COOLANT_STATE_MIST;
-#endif
-  }
+	if (sys.abort) { return; } // Block during abort.
+
+	  if (mode == COOLANT_DISABLE) {
+
+	    coolant_stop();
+
+	  } else {
+		  outputs_state |= COOLANT_STATE_FLOOD;
+	#ifdef ENABLE_M7
+		  outputs_state |= COOLANT_STATE_MIST;
+	#endif
+	  }
+	  sys.report_ovr_counter = 0; // Set to report change immediately
+	  HAL_SPI_Transmit_DMA(&hspi2,(uint8_t*)&outputs_state, 2);
+	
   sys.report_ovr_counter = 0; // Set to report change immediately
-  HAL_SPI_Transmit_DMA(&hspi2,(uint8_t*)&outputs_state, 2);
 }
 
 

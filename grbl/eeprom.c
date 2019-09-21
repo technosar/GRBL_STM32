@@ -21,13 +21,9 @@
 *                         $Revision: 1.6 $
 *                         $Date: Friday, February 11, 2005 07:16:44 UTC $
 ****************************************************************************/
-#include "grbl.h"
 
-#include <string.h>
-#include "settings.h"
 
- unsigned char eeprom[4096];
-
+unsigned char eeprom[4096];
 
 
 /*! \brief  Read byte from EEPROM.
@@ -73,8 +69,8 @@ void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsi
 	unsigned char checksum = 0;
 	for(; size > 0; size--) {
 		checksum = (checksum << 1) || (checksum >> 7);
-	    checksum += *source;
-	    eeprom_put_char(destination++, *(source++));
+		checksum += *source;
+		eeprom_put_char(destination++, *(source++));
 	}
 	eeprom_put_char(destination, checksum);
 }

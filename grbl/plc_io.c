@@ -9,26 +9,25 @@
 #include "cpu_map.h"
 #include "system.h"
 #include "grbl.h"
-#include "plc.h"
-#include "param.h"
+#include "plc_io.h"
+#include "gpio.h"
 
 
 extern SPI_HandleTypeDef hspi2;
-extern setup _setup;
+extern uint32_t outputs_state;
 
 uint32_t output_set_state(uint8_t number, uint8_t state)
 {
 	if (number >= OUTPUT_MAX) return STATUS_PLC_OUTPUT_OVERFLOW;
-	_setup.parameters[PARAM_PLC_BASE + number] = state;
 	if (state) outputs_state |= (1 << number);
 	else outputs_state &= ~(1 << number);
 	HAL_SPI_Transmit_DMA(&hspi2,(uint8_t*)&outputs_state, 2);
 	return STATUS_PLC_OK;
 }
 
-uint32_t output_get_state(void)
+uint16_t output_get_state(void)
 {
-  return((uint8_t)outputs_state);
+  return((uint16_t)outputs_state);
 }
 
 // Returns input pin state as a uint32 bitfield.
@@ -42,7 +41,7 @@ uint32_t input_get_state(void)
 	pin >>= X_LIMIT_BIT;
 	input = pin;
 
-	pin = ((GPIO_ReadPort(CONTROL_PIN_PORT) & CONTROL_MASK) >> CONTROL_RESET_BIT) << 6;
+	pin = ((GPIO_ReadPort(CONTROL_PIN_PORT) & CONTROL_MASK) >> CONTROL_SAFETY_DOOR_BIT) << 6;
 	input |= pin;
 
 	pin = ((GPIO_ReadPort(PROBE_PORT) & PROBE_MASK) >> PROBE_BIT) << 10;

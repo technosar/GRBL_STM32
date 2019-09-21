@@ -20,82 +20,53 @@
 */
 
 #include "grbl.h"
-#include "grbl_limits.h"
+#include "gpio.h"
 
 // Homing axis search distance multiplier. Computed by this value times the cycle travel.
 #ifndef HOMING_AXIS_SEARCH_SCALAR
-  #define HOMING_AXIS_SEARCH_SCALAR  1.5f // Must be > 1 to ensure limit switch will be engaged.
+  #define HOMING_AXIS_SEARCH_SCALAR  1.5 // Must be > 1 to ensure limit switch will be engaged.
 #endif
 #ifndef HOMING_AXIS_LOCATE_SCALAR
-  #define HOMING_AXIS_LOCATE_SCALAR  5.0f // Must be > 1 to ensure limit switch is cleared.
+  #define HOMING_AXIS_LOCATE_SCALAR  5.0 // Must be > 1 to ensure limit switch is cleared.
+#endif
+
+#ifdef ENABLE_DUAL_AXIS
+  // Flags for dual axis async limit trigger check.
+  #define DUAL_AXIS_CHECK_DISABLE     0  // Must be zero
+  #define DUAL_AXIS_CHECK_ENABLE      bit(0)
+  #define DUAL_AXIS_CHECK_TRIGGER_1   bit(1)
+  #define DUAL_AXIS_CHECK_TRIGGER_2   bit(2)
 #endif
 
 void limits_init()
 {
-
-#ifdef STM32F746I
-	GPIO_InitTypeDef GPIO_InitStruct;
-
-	/*Configure GPIO pins : PBPin PBPin PBPin */
-	GPIO_InitStruct.Pin = LIMIT_X_Pin|LIMIT_Y_Pin|LIMIT_Z_Pin;
-#ifdef U_AXIS
-//	GPIO_InitStruct.Pin |= LIMIT_U_Pin;
-#endif
-#ifdef A_ROT_AXIS
-	GPIO_InitStruct.Pin |= LIMIT_A_Pin;
-#endif
-#ifdef B_ROT_AXIS
-	GPIO_InitStruct.Pin |= LIMIT_B_Pin;
-#endif
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-	GPIO_InitStruct.Pull = GPIO_PULLUP;
-	HAL_GPIO_Init(GPIOH, &GPIO_InitStruct);
-
-
-	if (bit_istrue(settings.flags, BITFLAG_HARD_LIMIT_ENABLE))
-	{
-		/* EXTI interrupt init*/
-		HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
-		HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
-
-		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_10);
-		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_11);
-		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_12);
-#ifdef U_ROT_AXIS
-		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_13);
-#endif
-#ifdef A_ROT_AXIS
-		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_13);
-#endif
-#ifdef B_ROT_AXIS
-		__HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_13);
-#endif
-	}
-	else
-	{
-		limits_disable();
-	}
-#endif
+  if (bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE)) {
+	  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
+	  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  } else {
+    limits_disable();
+  }
 }
 
 
 // Disables hard limits.
 void limits_disable()
 {
-#ifdef STM32F746I
+	HAL_NVIC_DisableIRQ(EXTI9_5_IRQn);
 	HAL_NVIC_DisableIRQ(EXTI15_10_IRQn);
-#endif
 }
 
 
 // Returns limit state as a bit-wise uint8 variable. Each bit indicates an axis limit, where
 // triggered is 1 and not triggered is 0. Invert mask is applied. Axes are defined by their
-// number in bit position, i.e. Z_AXIS is (1<<2) or bit 2, and Y_AXIS is (1<<1) or bit 1.
+// number in bit position, i.e.
+// Z_AXIS is (1<<2) or bit 2
+// Y_AXIS is (1<<1) or bit 1.
+// X_AXIS is (1<<0) or bit 0.
 uint8_t limits_get_state()
 {
   uint8_t limit_state = 0;
-
-  uint16_t pin = GPIO_ReadPort(LIMIT_GPIO_Port);
+  uint16_t pin = GPIO_ReadPort(LIMIT_PIN_PORT) & LIMIT_MASK;
 
   #ifdef INVERT_LIMIT_PIN_MASK
     pin ^= INVERT_LIMIT_PIN_MASK;
@@ -104,8 +75,11 @@ uint8_t limits_get_state()
   if (pin) {
     uint8_t idx;
     for (idx=0; idx<N_AXIS; idx++) {
-      if (pin & limit_pin_mask[idx]) { limit_state |= (1 << idx); }
+      if (pin & get_limit_pin_mask(idx)) { limit_state |= (1 << idx); }
     }
+    #ifdef ENABLE_DUAL_AXIS
+      if (pin & (1<<DUAL_LIMIT_BIT)) { limit_state |= (1 << N_AXIS); }
+    #endif
   }
   return(limit_state);
 }
@@ -126,8 +100,6 @@ uint8_t limits_get_state()
 void EXTI_IRQHandler(uint16_t pin)
 #endif
 {
-#ifdef STM32F746I
-
 	if (__HAL_GPIO_EXTI_GET_IT(LIMIT_X_Pin) != RESET)
 	{
 		__HAL_GPIO_EXTI_CLEAR_IT(LIMIT_X_Pin);
@@ -140,27 +112,8 @@ void EXTI_IRQHandler(uint16_t pin)
 	{
 		__HAL_GPIO_EXTI_CLEAR_IT(LIMIT_Z_Pin);
 	}
-#ifdef U_AXIS
-//	if (__HAL_GPIO_EXTI_GET_IT(LIMIT_U_Pin) != RESET)
-//	{
-//		__HAL_GPIO_EXTI_CLEAR_IT(LIMIT_U_Pin);
-//	}
-#endif
-#ifdef A_ROT_AXIS
-	if (__HAL_GPIO_EXTI_GET_IT(LIMIT_A_Pin) != RESET)
-	{
-		__HAL_GPIO_EXTI_CLEAR_IT(LIMIT_A_Pin);
-	}
-#endif
-#ifdef B_ROT_AXIS
-	if (__HAL_GPIO_EXTI_GET_IT(LIMIT_B_Pin) != RESET)
-	{
-		__HAL_GPIO_EXTI_CLEAR_IT(LIMIT_B_Pin);
-	}
-#endif
 	NVIC_ClearPendingIRQ(EXTI15_10_IRQn);
 
-#endif
   // Ignore limit switches if already in an alarm state or in-process of executing an alarm.
   // When in the alarm state, Grbl should have been reset or will force a reset, so any pending
   // moves in the planner and serial buffers are all cleared and newly sent blocks will be
@@ -181,7 +134,6 @@ void EXTI_IRQHandler(uint16_t pin)
     }
   }
 }
-//#error ENABLE_SOFTWARE_DEBOUNCE is not supported yet
 
 // Homes the specified cycle axes, sets the machine position, and performs a pull-off motion after
 // completing. Homing is a special motion case, which involves rapid uncontrolled stops to locate
@@ -206,14 +158,28 @@ void limits_go_home(uint8_t cycle_mask)
   // Initialize variables used for homing computations.
   uint8_t n_cycle = (2*N_HOMING_LOCATE_CYCLE+1);
   uint8_t step_pin[N_AXIS];
+  #ifdef ENABLE_DUAL_AXIS
+    uint8_t step_pin_dual;
+    uint8_t dual_axis_async_check;
+    int32_t dual_trigger_position;
+    #if (DUAL_AXIS_SELECT == X_AXIS)
+      float fail_distance = (-DUAL_AXIS_HOMING_FAIL_AXIS_LENGTH_PERCENT/100.0)*settings.max_travel[Y_AXIS];
+    #else
+      float fail_distance = (-DUAL_AXIS_HOMING_FAIL_AXIS_LENGTH_PERCENT/100.0)*settings.max_travel[X_AXIS];
+    #endif
+    fail_distance = min(fail_distance, DUAL_AXIS_HOMING_FAIL_DISTANCE_MAX);
+    fail_distance = max(fail_distance, DUAL_AXIS_HOMING_FAIL_DISTANCE_MIN);
+    int32_t dual_fail_distance = trunc(fail_distance*settings.steps_per_mm[DUAL_AXIS_SELECT]);
+    // int32_t dual_fail_distance = trunc((DUAL_AXIS_HOMING_TRIGGER_FAIL_DISTANCE)*settings.steps_per_mm[DUAL_AXIS_SELECT]);
+  #endif
   float target[N_AXIS];
-  float max_travel = 0.0f;
+  float max_travel = 0.0;
   uint8_t idx;
   for (idx=0; idx<N_AXIS; idx++) {
     // Initialize step pin masks
-    step_pin[idx] = step_pin_mask[idx];
+    step_pin[idx] = get_step_pin_mask(idx);
     #ifdef COREXY
-      if ((idx==A_MOTOR)||(idx==B_MOTOR)) { step_pin[idx] = (step_pin_mask[X_AXIS]| step_pin_mask[Y_AXIS]); }
+      if ((idx==A_MOTOR)||(idx==B_MOTOR)) { step_pin[idx] = (get_step_pin_mask(X_AXIS)|get_step_pin_mask(Y_AXIS)); }
     #endif
 
     if (bit_istrue(cycle_mask,bit(idx))) {
@@ -222,6 +188,9 @@ void limits_go_home(uint8_t cycle_mask)
       max_travel = max(max_travel,(-HOMING_AXIS_SEARCH_SCALAR)*settings.max_travel[idx]);
     }
   }
+  #ifdef ENABLE_DUAL_AXIS
+    step_pin_dual = (1<<DUAL_STEP_BIT);
+  #endif
 
   // Set search mode with approach at seek rate to quickly engage the specified cycle_mask limit switches.
   bool approach = true;
@@ -234,6 +203,11 @@ void limits_go_home(uint8_t cycle_mask)
 
     // Initialize and declare variables needed for homing routine.
     axislock = 0;
+    #ifdef ENABLE_DUAL_AXIS
+      sys.homing_axis_lock_dual = 0;
+      dual_trigger_position = 0;
+      dual_axis_async_check = DUAL_AXIS_CHECK_DISABLE;
+    #endif
     n_active_axis = 0;
     for (idx=0; idx<N_AXIS; idx++) {
       // Set target location for active axes and setup computation for homing rate.
@@ -264,10 +238,13 @@ void limits_go_home(uint8_t cycle_mask)
         }
         // Apply axislock to the step port pins active in this cycle.
         axislock |= step_pin[idx];
+        #ifdef ENABLE_DUAL_AXIS
+          if (idx == DUAL_AXIS_SELECT) { sys.homing_axis_lock_dual = step_pin_dual; }
+        #endif
       }
 
     }
-    homing_rate *= sqrtf(n_active_axis); // [sqrt(N_AXIS)] Adjust so individual axes all move at homing rate.
+    homing_rate *= sqrt(n_active_axis); // [sqrt(N_AXIS)] Adjust so individual axes all move at homing rate.
     sys.homing_axis_lock = axislock;
 
     // Perform homing cycle. Planner buffer should be empty, as required to initiate the homing cycle.
@@ -289,11 +266,41 @@ void limits_go_home(uint8_t cycle_mask)
                 else { axislock &= ~(step_pin[A_MOTOR]|step_pin[B_MOTOR]); }
               #else
                 axislock &= ~(step_pin[idx]);
+                #ifdef ENABLE_DUAL_AXIS
+                  if (idx == DUAL_AXIS_SELECT) { dual_axis_async_check |= DUAL_AXIS_CHECK_TRIGGER_1; }
+                #endif
               #endif
             }
           }
         }
         sys.homing_axis_lock = axislock;
+        #ifdef ENABLE_DUAL_AXIS
+          if (sys.homing_axis_lock_dual) { // NOTE: Only true when homing dual axis.
+            if (limit_state & (1 << N_AXIS)) { 
+              sys.homing_axis_lock_dual = 0;
+              dual_axis_async_check |= DUAL_AXIS_CHECK_TRIGGER_2;
+            }
+          }
+          
+          // When first dual axis limit triggers, record position and begin checking distance until other limit triggers. Bail upon failure.
+          if (dual_axis_async_check) {
+            if (dual_axis_async_check & DUAL_AXIS_CHECK_ENABLE) {
+              if (( dual_axis_async_check &  (DUAL_AXIS_CHECK_TRIGGER_1 | DUAL_AXIS_CHECK_TRIGGER_2)) == (DUAL_AXIS_CHECK_TRIGGER_1 | DUAL_AXIS_CHECK_TRIGGER_2)) {
+                dual_axis_async_check = DUAL_AXIS_CHECK_DISABLE;
+              } else {
+                if (abs(dual_trigger_position - sys_position[DUAL_AXIS_SELECT]) > dual_fail_distance) {
+                  system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_DUAL_APPROACH);
+                  mc_reset();
+                  protocol_execute_realtime();
+                  return;
+                }
+              }
+            } else {
+              dual_axis_async_check |= DUAL_AXIS_CHECK_ENABLE;
+              dual_trigger_position = sys_position[DUAL_AXIS_SELECT];
+            }
+          }
+        #endif
       }
 
       st_prep_buffer(); // Check and prep segment buffer. NOTE: Should take no longer than 200us.
@@ -320,7 +327,11 @@ void limits_go_home(uint8_t cycle_mask)
         }
       }
 
-    } while (STEP_MASK & axislock);
+    #ifdef ENABLE_DUAL_AXIS
+      } while ((STEP_MASK & axislock) || (sys.homing_axis_lock_dual));
+    #else
+      } while (STEP_MASK & axislock);
+    #endif
 
     st_reset(); // Immediately force kill steppers and reset step segment buffer.
     delay_ms(settings.homing_debounce_delay); // Delay to allow transient dynamics to dissipate.
@@ -354,9 +365,9 @@ void limits_go_home(uint8_t cycle_mask)
         set_axis_position = 0;
       #else
         if ( bit_istrue(settings.homing_dir_mask,bit(idx)) ) {
-          set_axis_position = lroundf((settings.max_travel[idx]+settings.homing_pulloff)*settings.steps_per_mm[idx]);
+          set_axis_position = lround((settings.max_travel[idx]+settings.homing_pulloff)*settings.steps_per_mm[idx]);
         } else {
-          set_axis_position = lroundf(-settings.homing_pulloff*settings.steps_per_mm[idx]);
+          set_axis_position = lround(-settings.homing_pulloff*settings.steps_per_mm[idx]);
         }
       #endif
 

@@ -59,7 +59,7 @@
 #include "usbd_cdc.h"
 
 /* USER CODE BEGIN INCLUDE */
-#include "grbl.h"
+
 /* USER CODE END INCLUDE */
 
 /** @addtogroup STM32_USB_OTG_DEVICE_LIBRARY
@@ -119,7 +119,12 @@
 extern USBD_CDC_ItfTypeDef USBD_Interface_fops_FS;
 
 /* USER CODE BEGIN EXPORTED_VARIABLES */
-
+typedef struct
+{
+	uint8_t TxLEDPulse; /**< Milliseconds remaining for data Tx LED pulse */
+	uint8_t RxLEDPulse; /**< Milliseconds remaining for data Rx LED pulse */
+	uint8_t PingPongLEDPulse; /**< Milliseconds remaining for enumeration Tx/Rx ping-pong LED pulse */
+} StPulseMSRemaining;
 /* USER CODE END EXPORTED_VARIABLES */
 
 /**
@@ -137,6 +142,8 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 void CDC_send_str (char *str, int len);
 void CDC_send_text (char *text);
 void CDC_send_char (char c);
+void CDC_led_tx_on(uint8_t state);
+void CDC_led_rx_on(uint8_t state);
 /* USER CODE END EXPORTED_FUNCTIONS */
 
 /**

@@ -51,6 +51,9 @@
 #include "usbd_cdc_if.h"
 
 /* USER CODE BEGIN INCLUDE */
+#include "..\grbl\grbl.h"
+
+volatile StPulseMSRemaining PulseMSRemaining;
 
 /* USER CODE END INCLUDE */
 
@@ -96,10 +99,8 @@
 #define APP_RX_DATA_SIZE  2048
 #define APP_TX_DATA_SIZE  2048
 
- extern uint8_t serial_rx_buffer[RX_RING_BUFFER];
+ extern uint8_t serial_rx_buffer[RX_BUFFER_SIZE];
  extern uint8_t serial_rx_buffer_head;
-
- extern setup _setup;
 /* USER CODE END PRIVATE_DEFINES */
 
 /**
@@ -306,8 +307,6 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   volatile uint8_t data;
   volatile uint8_t *ptdata;
   volatile uint8_t RxBufferCount;
-  volatile uint8_t aparam;
-  volatile uint8_t bparam;
 
   USBD_CDC_SetRxBuffer(&hUsbDeviceFS, &Buf[0]);
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
@@ -317,6 +316,8 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   ptdata = Buf;
 
   data = *ptdata;
+
+  CDC_led_rx_on(1);
 
   // Pick off realtime command characters directly from the serial stream. These characters are
   // not passed into the main buffer, but these set system state flag bits for realtime execution.
@@ -354,11 +355,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
             case CMD_SPINDLE_OVR_FINE_MINUS   : system_set_exec_accessory_override_flag(EXEC_SPINDLE_OVR_FINE_MINUS); break;
             case CMD_SPINDLE_OVR_STOP         : system_set_exec_accessory_override_flag(EXEC_SPINDLE_OVR_STOP); break;
             case CMD_COOLANT_FLOOD_OVR_TOGGLE : system_set_exec_accessory_override_flag(EXEC_COOLANT_FLOOD_OVR_TOGGLE); break;
-            case CMD_SET_OUTPUT               : aparam = *(ptdata+1); // output number
-                                                bparam = *(ptdata+2); // output state
-                                                _setup.parameters[PARAM_PLC_BASE + aparam] = bparam;
-                                                output_set_state(aparam, bparam);
-            	                                break;
+
             #ifdef ENABLE_M7
               case CMD_COOLANT_MIST_OVR_TOGGLE: system_set_exec_accessory_override_flag(EXEC_COOLANT_MIST_OVR_TOGGLE); break;
             #endif
@@ -396,6 +393,8 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
     return USBD_BUSY;
   }
 
+  CDC_led_tx_on(1);
+
   do {
 	  if (!hcdc->TxState) {
 		  if (Len > APP_TX_DATA_SIZE) {
@@ -419,6 +418,8 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 }
 
 /* USER CODE BEGIN PRIVATE_FUNCTIONS_IMPLEMENTATION */
+
+
 /*****************************************************************************
 Name:        CDC_send_str
 Description	 : The following sends a text string to the terminal program
@@ -427,12 +428,12 @@ Return value : none
 *****************************************************************************/
 void CDC_send_str (char *str, int len)
 {
-	uint8_t res;
+  uint8_t res;
 
-	do {
-		res = CDC_Transmit_FS((uint8_t*)str,len);
-	}
-	while (res != USBD_OK);
+  do {
+	  res = CDC_Transmit_FS((uint8_t*)str,len);
+  }
+  while (res != USBD_OK);
 }
 
 void CDC_send_text (char *text)
@@ -456,6 +457,21 @@ void CDC_send_char (char c)
 	}
 	while (res != USBD_OK);
 }
+
+void CDC_led_tx_on(uint8_t state)
+{
+	if (state)  HAL_GPIO_WritePin(LED_TX_GPIO_Port, LED_TX_Pin, GPIO_PIN_SET);
+	else  HAL_GPIO_WritePin(LED_TX_GPIO_Port, LED_TX_Pin, GPIO_PIN_RESET);
+	PulseMSRemaining.TxLEDPulse = 3;
+}
+
+void CDC_led_rx_on(uint8_t state)
+{
+	if (state)  HAL_GPIO_WritePin(LED_RX_GPIO_Port, LED_RX_Pin, GPIO_PIN_SET);
+	else  HAL_GPIO_WritePin(LED_RX_GPIO_Port, LED_RX_Pin, GPIO_PIN_RESET);
+	PulseMSRemaining.RxLEDPulse = 3;
+}
+
 /* USER CODE END PRIVATE_FUNCTIONS_IMPLEMENTATION */
 
 /**

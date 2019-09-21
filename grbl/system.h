@@ -38,15 +38,16 @@
 #define EXEC_SLEEP          bit(7) // bitmask 10000000
 
 // Alarm executor codes. Valid values (1-255). Zero is reserved.
-#define EXEC_ALARM_HARD_LIMIT           1
-#define EXEC_ALARM_SOFT_LIMIT           2
-#define EXEC_ALARM_ABORT_CYCLE          3
-#define EXEC_ALARM_PROBE_FAIL_INITIAL   4
-#define EXEC_ALARM_PROBE_FAIL_CONTACT   5
-#define EXEC_ALARM_HOMING_FAIL_RESET    6
-#define EXEC_ALARM_HOMING_FAIL_DOOR     7
-#define EXEC_ALARM_HOMING_FAIL_PULLOFF  8
-#define EXEC_ALARM_HOMING_FAIL_APPROACH 9
+#define EXEC_ALARM_HARD_LIMIT                 1
+#define EXEC_ALARM_SOFT_LIMIT                 2
+#define EXEC_ALARM_ABORT_CYCLE                3
+#define EXEC_ALARM_PROBE_FAIL_INITIAL         4
+#define EXEC_ALARM_PROBE_FAIL_CONTACT         5
+#define EXEC_ALARM_HOMING_FAIL_RESET          6
+#define EXEC_ALARM_HOMING_FAIL_DOOR           7
+#define EXEC_ALARM_HOMING_FAIL_PULLOFF        8
+#define EXEC_ALARM_HOMING_FAIL_APPROACH       9
+#define EXEC_ALARM_HOMING_FAIL_DUAL_APPROACH  10
 
 // Override bit maps. Realtime bitflags to control feed, rapid, spindle, and coolant overrides.
 // Spindle/coolant and feed/rapids are separated into two controlling flag variables.
@@ -58,8 +59,6 @@
 #define EXEC_RAPID_OVR_RESET        bit(5)
 #define EXEC_RAPID_OVR_MEDIUM       bit(6)
 #define EXEC_RAPID_OVR_LOW          bit(7)
-#define EXEC_FEED_OVR               bit(8)
-#define EXEC_RAPID_OVR              bit(9)
 // #define EXEC_RAPID_OVR_EXTRA_LOW   bit(*) // *NOT SUPPORTED*
 
 #define EXEC_SPINDLE_OVR_RESET         bit(0)
@@ -70,7 +69,6 @@
 #define EXEC_SPINDLE_OVR_STOP          bit(5)
 #define EXEC_COOLANT_FLOOD_OVR_TOGGLE  bit(6)
 #define EXEC_COOLANT_MIST_OVR_TOGGLE   bit(7)
-#define EXEC_SPINDLE_OVR               bit(8)
 
 // Define system state bit map. The state variable primarily tracks the individual functions
 // of Grbl to manage each without overlapping. It is also used as a messaging flag for
@@ -84,7 +82,6 @@
 #define STATE_JOG           bit(5) // Jogging mode.
 #define STATE_SAFETY_DOOR   bit(6) // Safety door is ajar. Feed holds and de-energizes system.
 #define STATE_SLEEP         bit(7) // Sleep state.
-
 
 // Define system suspend flags. Used in various ways to manage suspend states and procedures.
 #define SUSPEND_DISABLE           0      // Must be zero.
@@ -105,6 +102,8 @@
 #define STEP_CONTROL_UPDATE_SPINDLE_PWM   bit(3)
 
 // Define control pin index for Grbl internal use. Pin maps may change, but these values don't.
+#define ENABLE_SAFETY_DOOR_INPUT_PIN
+
 #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
   #define N_CONTROL_PIN 4
   #define CONTROL_PIN_INDEX_SAFETY_DOOR   bit(0)
@@ -125,6 +124,7 @@
 #define SPINDLE_STOP_OVR_RESTORE        bit(2)
 #define SPINDLE_STOP_OVR_RESTORE_CYCLE  bit(3)
 
+
 // Define global system variables
 typedef struct {
   uint8_t state;               // Tracks the current system state of Grbl.
@@ -134,18 +134,20 @@ typedef struct {
   uint8_t step_control;        // Governs the step segment generator depending on system state.
   uint8_t probe_succeeded;     // Tracks if last probing cycle was successful.
   uint8_t homing_axis_lock;    // Locks axes when limits engage. Used as an axis motion mask in the stepper ISR.
+  #ifdef ENABLE_DUAL_AXIS
+    uint8_t homing_axis_lock_dual;
+  #endif
   uint8_t f_override;          // Feed rate override value in percent
   uint8_t r_override;          // Rapids override value in percent
   uint8_t spindle_speed_ovr;   // Spindle speed value in percent
   uint8_t spindle_stop_ovr;    // Tracks spindle stop override states
   uint8_t report_ovr_counter;  // Tracks when to add override data to status reports.
   uint8_t report_wco_counter;  // Tracks when to add work coordinate offset data to status reports.
-	#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-		uint8_t override_ctrl;     // Tracks override control states.
-	#endif
-	#ifdef VARIABLE_SPINDLE
+  #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+    uint8_t override_ctrl;     // Tracks override control states.
+  #endif
+  #ifdef VARIABLE_SPINDLE
     float spindle_speed;
-    uint32_t encoder_count;
   #endif
 } system_t;
 extern system_t sys;
@@ -153,9 +155,6 @@ extern system_t sys;
 // NOTE: These position variables may need to be declared as volatiles, if problems arise.
 extern int32_t sys_position[N_AXIS];      // Real-time machine (aka home) position vector in steps.
 extern int32_t sys_probe_position[N_AXIS]; // Last probe position in machine coordinates and steps.
-
-extern uint32_t inputs_state;
-extern uint16_t outputs_state;
 
 extern volatile uint8_t sys_probe_state;   // Probing state value.  Used to coordinate the probing cycle with stepper ISR.
 extern volatile uint8_t sys_rt_exec_state;   // Global realtime executor bitflag variable for state management. See EXEC bitmasks.
@@ -165,7 +164,7 @@ extern volatile uint32_t sys_rt_exec_accessory_override; // Global realtime exec
 
 #ifdef DEBUG
   #define EXEC_DEBUG_REPORT  bit(0)
-	extern volatile uint8_t sys_rt_exec_debug;
+  extern volatile uint8_t sys_rt_exec_debug;
 #endif
 
 // Initialize the serial protocol
@@ -173,8 +172,6 @@ void system_init();
 
 // Returns bitfield of control pin states, organized by CONTROL_PIN_INDEX. (1=triggered, 0=not triggered).
 uint8_t system_control_get_state();
-
-uint32_t input_get_state();
 
 // Returns if safety door is open or closed, based on pin state.
 uint8_t system_check_safety_door_ajar();
@@ -208,10 +205,12 @@ void system_set_exec_state_flag(uint8_t mask);
 void system_clear_exec_state_flag(uint8_t mask);
 void system_set_exec_alarm(uint8_t code);
 void system_clear_exec_alarm();
-void system_set_exec_motion_override_flag(uint32_t mask);
-void system_set_exec_accessory_override_flag(uint32_t mask);
+void system_set_exec_motion_override_flag(uint8_t mask);
+void system_set_exec_accessory_override_flag(uint8_t mask);
 void system_clear_exec_motion_overrides();
 void system_clear_exec_accessory_overrides();
+
+void _EXTI15_10_IRQHandler(void);
 
 
 #endif

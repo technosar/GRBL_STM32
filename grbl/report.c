@@ -28,58 +28,11 @@
 
 #include "grbl.h"
 #include "usbd_cdc_if.h"
-#include "terminal.h"
-#include "system.h"
-#include "plc.h"
 
 char str_report[2048];
 
-const char fmt_status_report_mask[13][64] = {"Status report mask\r\nBit  Val  Description\r\n",
-		                                                       "  0    %d  Report Work position\r\n",
-		                                                       "  1    %d  Report Machine position\r\n",
-															   "  2    %d  Report Buffer state\r\n",
-															   "  3    %d  Report Current Speed Feed\r\n",
-															   "  4    %d  Report Override\r\n",
-															   "  5    %d  Report Current Spindle Speed\r\n",
-															   "  6    %d  Set Text Separator [0='|',1=';']\r\n",
-															   "  7    %d  Wait End Motion\r\n",
-															   "  8    %d  Report U Axis Position\r\n",
-															   "  9    %d  Report A Axis Position\r\n",
-															   " 10    %d  Report B Axis Position\r\n"
-};
-
-const char fmt_step_report_mask[7][64] = {"Step port invert mask\r\nBit  Val  Description\r\n",
-                                                                      "  0    %d  Invert Step X\r\n",
-																	  "  0    %d  Invert Step Y\r\n",
-																	  "  0    %d  Invert Step Z\r\n",
-																	  "  0    %d  Invert Step U\r\n",
-																	  "  0    %d  Invert Step A\r\n",
-																	  "  0    %d  Invert Step B\r\n"
-
-};
-
-const char fmt_dir_report_mask[7][64] = {"Direction port invert mask\r\nBit  Val  Description\r\n",
-                                                                      "  0    %d  Invert Direction X\r\n",
-																	  "  0    %d  Invert Direction Y\r\n",
-																	  "  0    %d  Invert Direction Z\r\n",
-																	  "  0    %d  Invert Direction U\r\n",
-																	  "  0    %d  Invert Direction A\r\n",
-																	  "  0    %d  Invert Direction B\r\n"
-
-};
-
-const char fmt_homing_dir_report_mask[7][64] = {"Homing direction port invert mask\r\nBit  Val  Description\r\n",
-                                                                      "  0    %d  Homing invert Direction X\r\n",
-																	  "  0    %d  Homing invert Direction Y\r\n",
-																	  "  0    %d  Homing invert Direction Z\r\n",
-																	  "  0    %d  Homing invert Direction U\r\n",
-																	  "  0    %d  Homing invert Direction A\r\n",
-																	  "  0    %d  Homing invert Direction B\r\n"
-
-};
-
-
-const char alarm_str[10][32] = { "\r\n", "Hard limit\r\n",
+const char alarm_str[10][32] = { "\r\n",
+								"Hard limit\r\n",
 								"Soft limit\r\n",
 								"Abort during cycle\r\n",
 								"Probe fail initial\r\n",
@@ -89,125 +42,6 @@ const char alarm_str[10][32] = { "\r\n", "Hard limit\r\n",
 								"Homing fail pulloff\r\n",
 								"Homing fail approach\r\n"
 };
-
-void text_print_nul(cfgItem_t *nv)
-{
-	//sprintf(str_report, format);
-	//CDC_send_str(str_report, strlen(str_report));
-}	// just print the format string
-
-void text_print_str(cfgItem_t *nv)
-{
-	sprintf(str_report, nv->string, (char)'$', nv->index);
-	CDC_send_str(str_report, strlen(str_report));
-}
-
-void text_print_int(cfgItem_t *nv)
-{
-	switch (nv->valuetype) {
-	case TYPE_UINT8 : sprintf(str_report, nv->string, (char)'$', nv->index, (uint8_t)*(uint8_t*)nv->target);
-		break;
-	case TYPE_UINT16 : sprintf(str_report, nv->string, (char)'$', nv->index, (uint16_t)*(uint16_t*)nv->target);
-		break;
-	case TYPE_UINT32 : sprintf(str_report, nv->string, (char)'$', nv->index, (uint32_t)*(uint32_t*)nv->target);
-		break;
-	case TYPE_INT8 : sprintf(str_report, nv->string, (char)'$', nv->index, (int8_t)*(int8_t*)nv->target);
-		break;
-	case TYPE_INT16 : sprintf(str_report, nv->string, (char)'$', nv->index, (int16_t)*(int16_t*)nv->target);
-		break;
-	case TYPE_INT32 : sprintf(str_report, nv->string, (char)'$', nv->index, (int32_t)*(int32_t*)nv->target);
-		break;
-	default : break;
-	}
-	CDC_send_str(str_report, strlen(str_report));
-}
-
-void text_print_float(cfgItem_t *nv)
-{
-	switch (nv->index) {
-	case 120 : case 121 : case 122 : case 123 : case 124 : case 125 : {
-			sprintf(str_report, nv->string, (char)'$', nv->index, *(float*)nv->target/(60.0f*60.0f));
-		}
-		break;
-	case 130 : case 131 : case 132 : case 133 :case 134 :case 135 : {
-			sprintf(str_report, nv->string, (char)'$', nv->index, -*(float*)nv->target);
-		}
-		break;
-	default : sprintf(str_report, nv->string, (char)'$', nv->index, *(float*)nv->target);
-	}
-	CDC_send_str(str_report, strlen(str_report));
-}
-
-void text_print_bool(cfgItem_t *nv)
-{
-	if ((uint32_t)*(uint32_t*)nv->target & nv->precision) {
-		//sprintf(str_report, nv->string, (char)sys.param_letter, nv->index, "True");
-		sprintf(str_report, nv->string, (char)'$', nv->index, '1');
-	}
-	else {
-		//sprintf(str_report, nv->string, nv->index, "False");
-		sprintf(str_report, nv->string, (char)'$', nv->index, '0');
-	}
-    CDC_send_str(str_report, strlen(str_report));
-}
-
-void text_print_null(void *nv) {
-	return;
-}
-
-void text_print(void *nv) {
-	cfgItem_t *ptcfgItem;
-
-	ptcfgItem = (cfgItem_t *)nv;
-    switch (ptcfgItem->valuetype) {
-        case TYPE_NULL:   { text_print_nul(ptcfgItem); break;}
-        case TYPE_FLOAT:  { text_print_float(ptcfgItem); break;}
-        case TYPE_UINT8:  { text_print_int(ptcfgItem); break;}
-        case TYPE_UINT16: { text_print_int(ptcfgItem); break;}
-        case TYPE_UINT32: { text_print_int(ptcfgItem); break;}
-        case TYPE_INT8:   { text_print_int(ptcfgItem); break;}
-        case TYPE_INT16:  { text_print_int(ptcfgItem); break;}
-        case TYPE_INT32:  { text_print_int(ptcfgItem); break;}
-        case TYPE_STRING: { text_print_str(ptcfgItem); break;}
-        case TYPE_BOOL:   { text_print_bool(ptcfgItem); break;}
-        default : break;
-    }
-}
-
-void text_print_help(cfgItem_t *nv) {
-	uint32_t val_uint32;
-	uint8_t i;
-
-	if (nv->index == 23) { // report status mask
-		val_uint32 = (uint32_t)*(uint32_t*)nv->target;
-		sprintf(str_report, fmt_homing_dir_report_mask[0]);
-		for (i=1;i<7;i++) {
-			sprintf(str_report + strlen(str_report), fmt_homing_dir_report_mask[i], (val_uint32 & (1<<(i-1)))?1:0);
-		}
-	}
-	if (nv->index == 10) { // report status mask
-		val_uint32 = (uint32_t)*(uint32_t*)nv->target;
-		sprintf(str_report, fmt_status_report_mask[0]);
-		for (i=1;i<12;i++) {
-			sprintf(str_report + strlen(str_report), fmt_status_report_mask[i], (val_uint32 & (1<<(i-1)))?1:0);
-		}
-	}
-	if (nv->index == 2) {
-		val_uint32 = (uint32_t)*(uint32_t*)nv->target;
-		sprintf(str_report, fmt_step_report_mask[0]);
-		for (i=1;i<7;i++) {
-			sprintf(str_report + strlen(str_report), fmt_step_report_mask[i], (val_uint32 & (1<<(i-1)))?1:0);
-		}
-	}
-	if (nv->index == 3) {
-		val_uint32 = (uint32_t)*(uint32_t*)nv->target;
-		sprintf(str_report, fmt_dir_report_mask[0]);
-		for (i=1;i<7;i++) {
-			sprintf(str_report + strlen(str_report), fmt_dir_report_mask[i], (val_uint32 & (1<<(i-1)))?1:0);
-		}
-	}
-	CDC_send_str(str_report, strlen(str_report));
-}
 
 // Handles the primary confirmation protocol response for streaming interfaces and human-feedback.
 // For every incoming line, this method responds with an 'ok' for a successful command or an
@@ -222,17 +56,17 @@ void report_status_message(uint8_t status_code)
       sprintf(str_report,"ok\r\n");
       CDC_send_str(str_report, strlen(str_report));
       break;
-    case STATUS_QUIET: return;
     default:
       sprintf(str_report,"error:%d\r\n", status_code);
       CDC_send_str(str_report, strlen(str_report));
   }
 }
 
+
 // Prints alarm messages.
 void report_alarm_message(uint8_t alarm_code)
 {
-	sprintf(str_report,"ALARM:%d %s", alarm_code, alarm_str[alarm_code]);
+	sprintf(str_report,"ALARM:%d %s\r\n", alarm_code, alarm_str[alarm_code]);
 	CDC_send_str(str_report, strlen(str_report));
 }
 
@@ -243,94 +77,55 @@ void report_alarm_message(uint8_t alarm_code)
 // is installed, the message number codes are less than zero.
 void report_feedback_message(uint8_t message_code)
 {
-  switch(message_code) {
-    case MESSAGE_CRITICAL_EVENT:
-    	sprintf(str_report,"[MSG:Reset to continue]\r\n");
-    	break;
-    case MESSAGE_ALARM_LOCK:
-    	sprintf(str_report,"[MSG:'$H'|'$X' to unlock]\r\n");
-      break;
-    case MESSAGE_ALARM_UNLOCK:
-    	sprintf(str_report,"[MSG:Caution: Unlocked]\r\n");
-      break;
-    case MESSAGE_ENABLED:
-    	sprintf(str_report,"[MSG:Enabled]\r\n");
-      break;
-    case MESSAGE_DISABLED:
-    	sprintf(str_report,"[MSG:Disabled]\r\n");
-      break;
-    case MESSAGE_SAFETY_DOOR_AJAR:
-    	sprintf(str_report,"[MSG:Check Door]\r\n");
-      break;
-    case MESSAGE_CHECK_LIMITS:
-    	sprintf(str_report,"[MSG:Check Limits]\r\n");
-      break;
-    case MESSAGE_PROGRAM_END:
-    	sprintf(str_report,"[MSG:Pgm End]\r\n");
-      break;
-    case MESSAGE_RESTORE_DEFAULTS:
-    	sprintf(str_report,"[MSG:Restoring defaults]\r\n");
-      break;
-    case MESSAGE_SPINDLE_RESTORE:
-    	sprintf(str_report,"[MSG:Restoring spindle]\r\n");
-      break;
-    case MESSAGE_SLEEP_MODE:
-    	sprintf(str_report,"[MSG:Sleeping]\r\n");
-      break;
-  }
-  CDC_send_str(str_report, strlen(str_report));
+	  switch(message_code) {
+	    case MESSAGE_CRITICAL_EVENT:
+	    	sprintf(str_report,"[MSG:Reset to continue]\r\n");
+	    	break;
+	    case MESSAGE_ALARM_LOCK:
+	    	sprintf(str_report,"[MSG:'$H'|'$X' to unlock]\r\n");
+	      break;
+	    case MESSAGE_ALARM_UNLOCK:
+	    	sprintf(str_report,"[MSG:Caution: Unlocked]\r\n");
+	      break;
+	    case MESSAGE_ENABLED:
+	    	sprintf(str_report,"[MSG:Enabled]\r\n");
+	      break;
+	    case MESSAGE_DISABLED:
+	    	sprintf(str_report,"[MSG:Disabled]\r\n");
+	      break;
+	    case MESSAGE_SAFETY_DOOR_AJAR:
+	    	sprintf(str_report,"[MSG:Check Door]\r\n");
+	      break;
+	    case MESSAGE_CHECK_LIMITS:
+	    	sprintf(str_report,"[MSG:Check Limits]\r\n");
+	      break;
+	    case MESSAGE_PROGRAM_END:
+	    	sprintf(str_report,"[MSG:Pgm End]\r\n");
+	      break;
+	    case MESSAGE_RESTORE_DEFAULTS:
+	    	sprintf(str_report,"[MSG:Restoring defaults]\r\n");
+	      break;
+	    case MESSAGE_SPINDLE_RESTORE:
+	    	sprintf(str_report,"[MSG:Restoring spindle]\r\n");
+	      break;
+	    case MESSAGE_SLEEP_MODE:
+	    	sprintf(str_report,"[MSG:Sleeping]\r\n");
+	      break;
+	  }
+	  CDC_send_str(str_report, strlen(str_report));
 }
 
-void report_gcode_message(char *msg)
-{
-	if (strstr(msg, "MSGBOX") != NULL ) {
-		sprintf(str_report,"%s\r\n", msg );
-		CDC_send_str(str_report, strlen(str_report));
-	}
-}
 
 // Welcome message
 void report_init_message()
 {
-	sprintf(str_report,"Grbl %s  ['$' for help]\r\n", GCCTRL_VERSION);
-	CDC_send_str(str_report, strlen(str_report));
-}
-
-void report_parameter(unsigned int id, float param, int valuetype)
-{
-	switch (valuetype) {
-			case TYPE_NULL:   { break;}
-	        case TYPE_FLOAT:  { sprintf(str_report,"#%d = %.3f\r\nok\r\n", id, param); break;}
-	        case TYPE_UINT8:  {  break;}
-	        case TYPE_UINT16: {  break;}
-	        case TYPE_UINT32: { sprintf(str_report,"#%d = %d\r\nok\r\n", id, (int)param); break;}
-	        case TYPE_INT8:   { ; break;}
-	        case TYPE_INT16:  { ; break;}
-	        case TYPE_INT32:  {  break;}
-	        case TYPE_STRING: {  break;}
-	        case TYPE_BOOL:   {  break;}
-	        default : break;
-	    }
-
-	CDC_send_str(str_report, strlen(str_report));
+  sprintf(str_report,"\r\nGrbl %s  ['$' for help]\r\n", GRBL_VERSION);
+  CDC_send_str(str_report, strlen(str_report));
 }
 
 // Grbl help message
 void report_grbl_help() {
-	sprintf(str_report,"$$ (view Grbl settings)\r\n");
-	sprintf(str_report + strlen(str_report),"$# (view # parameters)\r\n");
-	sprintf(str_report + strlen(str_report),"$G (view parser state)\r\n");
-	sprintf(str_report + strlen(str_report),"$I (view build info)\r\n");
-	sprintf(str_report + strlen(str_report),"$N (view startup blocks)\r\n");
-	sprintf(str_report + strlen(str_report),"$x=value (save Grbl setting)\r\n");
-	sprintf(str_report + strlen(str_report),"$Nx=line (save startup block)\r\n");
-	sprintf(str_report + strlen(str_report),"$C (check gcode mode)\r\n");
-	sprintf(str_report + strlen(str_report),"$X (kill alarm lock)\r\n");
-	sprintf(str_report + strlen(str_report),"$H (run homing cycle)\r\n");
-	sprintf(str_report + strlen(str_report),"~ (cycle start)\r\n");
-	sprintf(str_report + strlen(str_report),"! (feed hold)\r\n");
-	sprintf(str_report + strlen(str_report),"? (current status)\r\n");
-	sprintf(str_report + strlen(str_report),"ctrl-x (reset Grbl)\r\n");
+	sprintf(str_report,"[HLP:$$ $# $G $I $N $x=val $Nx=line $J=line $SLP $C $X $H ~ ! ? ctrl-x]\r\n");
 	CDC_send_str(str_report, strlen(str_report));
 }
 
@@ -338,60 +133,50 @@ void report_grbl_help() {
 // Grbl global settings print out.
 // NOTE: The numbering scheme here must correlate to storing in settings.c
 void report_grbl_settings() {
+
   // Print Grbl settings.
+  sprintf(str_report,"$%d=%d\r\n",                            0, settings.pulse_microseconds);
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      1, settings.stepper_idle_lock_time);
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      2, settings.step_invert_mask);
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      3, settings.dir_invert_mask);
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      4, bit_istrue(settings.flags, BITFLAG_INVERT_ST_ENABLE));
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      5, bit_istrue(settings.flags, BITFLAG_INVERT_LIMIT_PINS));
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      6, bit_istrue(settings.flags, BITFLAG_INVERT_PROBE_PIN));
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     10, settings.status_report_mask);
+  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  11, settings.junction_deviation);
+  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  12, settings.arc_tolerance);
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     13, bit_istrue(settings.flags,BITFLAG_REPORT_INCHES));
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     20, bit_istrue(settings.flags,BITFLAG_SOFT_LIMIT_ENABLE));
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     21, bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE));
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     22, bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE));
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     23, settings.homing_dir_mask);
+  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  24, settings.homing_feed_rate);
+  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  24, settings.homing_seek_rate);
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     26, settings.homing_debounce_delay);
+  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  27, settings.homing_pulloff);
+  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  30, settings.rpm_max);
+  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  31, settings.rpm_min);
+#ifdef VARIABLE_SPINDLE
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     32, bit_istrue(settings.flags,BITFLAG_LASER_MODE));
+#else
+  sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     32, 0);
+#endif
 
-	for (int i=0; i<=MAX_PARAM_SETTINGS ; i++) settings_print_global_setting(i);
-
-	/*
-
-  sprintf(str_report,"$%d=%ld\r\n", 0,settings.pulse_microseconds);
-  sprintf(str_report + strlen(str_report),"$%d=%ld\r\n", 1,settings.stepper_idle_lock_time);
-  sprintf(str_report + strlen(str_report),"$%d=%ld\r\n", 2,settings.step_invert_mask);
-  sprintf(str_report + strlen(str_report),"$%d=%ld\r\n", 3,settings.dir_invert_mask);
-  sprintf(str_report + strlen(str_report),"$%d=%u\r\n", 4,bit_istrue(settings.flags,BITFLAG_INVERT_ST_ENABLE));
-  sprintf(str_report + strlen(str_report),"$%d=%u\r\n", 5,bit_istrue(settings.flags,BITFLAG_INVERT_LIMIT_PINS));
-  sprintf(str_report + strlen(str_report),"$%d=%u\r\n", 6,bit_istrue(settings.flags,BITFLAG_INVERT_PROBE_PIN));
-  sprintf(str_report + strlen(str_report),"$%d=%ld\r\n", 10,settings.status_report_mask);
-
-  sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", 11,settings.junction_deviation);
-  sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", 12,settings.arc_tolerance);
-
-  sprintf(str_report + strlen(str_report),"$%d=%d\r\n", 13,bit_istrue(settings.flags,BITFLAG_REPORT_INCHES));
-  sprintf(str_report + strlen(str_report),"$%d=%d\r\n", 20,bit_istrue(settings.flags,BITFLAG_SOFT_LIMIT_ENABLE));
-  sprintf(str_report + strlen(str_report),"$%d=%d\r\n", 21,bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE));
-  sprintf(str_report + strlen(str_report),"$%d=%d\r\n", 22,bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE));
-  sprintf(str_report + strlen(str_report),"$%d=%d\r\n", 23,settings.homing_dir_mask);
-
-  sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", 24,settings.homing_feed_rate);
-  sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", 25,settings.homing_seek_rate);
-
-  sprintf(str_report + strlen(str_report),"$%d=%ld\r\n", 26,settings.homing_debounce_delay);
-
-  sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", 27,settings.homing_pulloff);
-  sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", 30,settings.rpm_max);
-  sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", 31,settings.rpm_min);
-
-  #ifdef VARIABLE_SPINDLE
-  sprintf(str_report + strlen(str_report),"$%d=%d\r\n", 32,bit_istrue(settings.flags,BITFLAG_LASER_MODE));
-  #else
-    report_util_uint8_setting(32,0);
-  #endif
   // Print axis settings
   uint8_t idx, set_idx;
   uint8_t val = AXIS_SETTINGS_START_VAL;
   for (set_idx=0; set_idx<AXIS_N_SETTINGS; set_idx++) {
     for (idx=0; idx<N_AXIS; idx++) {
       switch (set_idx) {
-        case 0: sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", val+idx,settings.steps_per_mm[idx]); break;
-        case 1: sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", val+idx,settings.max_rate[idx]); break;
-        case 2: sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", val+idx,settings.acceleration[idx]/(60*60)); break;
-        case 3: sprintf(str_report + strlen(str_report),"$%d=%.3f\r\n", val+idx,-settings.max_travel[idx]); break;
+        case 0: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.steps_per_mm[idx]); break;
+        case 1: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.max_rate[idx]); break;
+        case 2: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.acceleration[idx]/(60.0f*60.0f)); break;
+        case 3: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.max_travel[idx]); break;
       }
     }
     val += AXIS_SETTINGS_INCREMENT;
   }
   CDC_send_str(str_report, strlen(str_report));
-  */
 }
 
 
@@ -400,18 +185,18 @@ void report_grbl_settings() {
 // These values are retained until Grbl is power-cycled, whereby they will be re-zeroed.
 void report_probe_parameters()
 {
-	uint8_t idx;
-	// Report in terms of machine position.
-	float print_position[N_AXIS];
-	system_convert_array_steps_to_mpos(print_position, sys_probe_position);
+  uint8_t idx;
+  // Report in terms of machine position.
+  float print_position[N_AXIS];
+  system_convert_array_steps_to_mpos(print_position, sys_probe_position);
 
-	for (idx=0; idx < N_AXIS; idx++) {
-		if (bit_istrue(settings.flags,BITFLAG_REPORT_INCHES)) {
-			print_position[idx] *= INCH_PER_MM;
-		}
-	}
-	sprintf(str_report,"[PRB:%.3f,%.3f,%.3f:%d]\r\n", print_position[0], print_position[1], print_position[2], sys.probe_succeeded);
-	CDC_send_str(str_report, strlen(str_report));
+  for (idx=0; idx < N_AXIS; idx++) {
+	  if (bit_istrue(settings.flags,BITFLAG_REPORT_INCHES)) {
+		  print_position[idx] *= INCH_PER_MM;
+	  }
+  }
+  sprintf(str_report,"[PRB:%.3f,%.3f,%.3f:%d]\r\n", print_position[0], print_position[1], print_position[2], sys.probe_succeeded);
+  CDC_send_str(str_report, strlen(str_report));
 }
 
 
@@ -423,22 +208,22 @@ void report_ngc_parameters()
 
   for (coord_select = 0; coord_select <= SETTING_INDEX_NCOORD; coord_select++)
   {
-    if (!(settings_read_coord_data(coord_select,coord_data)))
-    {
-      report_status_message(STATUS_SETTING_READ_FAIL);
-      return;
-    }
+	  if (!(settings_read_coord_data(coord_select,coord_data)))
+	  {
+		  report_status_message(STATUS_SETTING_READ_FAIL);
+	      return;
+	  }
 
-    switch (coord_select)
-    {
-    	case 6 : sprintf(str_report,"[G28:%.3f,%.3f,%.3f]\r\n", coord_data[0], coord_data[1], coord_data[2]);
-    			break;
-    	case 7 : sprintf(str_report,"[G30:%.3f,%.3f,%.3f]\r\n", coord_data[0], coord_data[1], coord_data[2]);
-    	    	break;
-    	default : sprintf(str_report,"[G%d:%.3f,%.3f,%.3f]\r\n", coord_select+54, coord_data[0], coord_data[1], coord_data[2]);
-    		break;
-    }
-    CDC_send_str(str_report, strlen(str_report));
+	  switch (coord_select)
+	  {
+	  	  case 6 : sprintf(str_report,"[G28:%.3f,%.3f,%.3f]\r\n", coord_data[0], coord_data[1], coord_data[2]);
+	    			break;
+	  	  case 7 : sprintf(str_report,"[G30:%.3f,%.3f,%.3f]\r\n", coord_data[0], coord_data[1], coord_data[2]);
+	    	    	break;
+	  	  default : sprintf(str_report,"[G%d:%.3f,%.3f,%.3f]\r\n", coord_select+54, coord_data[0], coord_data[1], coord_data[2]);
+	    		break;
+	  }
+	  CDC_send_str(str_report, strlen(str_report));
   }
 
   // Print G92,G92.1 which are not persistent in memory
@@ -449,7 +234,6 @@ void report_ngc_parameters()
   sprintf(str_report,"[TLO:%.3f]\r\n", gc_state.tool_length_offset);
   CDC_send_str(str_report, strlen(str_report));
   report_probe_parameters(); // Print probe parameters. Not persistent in memory.
-
 }
 
 
@@ -457,87 +241,87 @@ void report_ngc_parameters()
 void report_gcode_modes()
 {
   sprintf(str_report ,"[GC:");
-	switch (gc_state.modal.motion) {
-	    case MOTION_MODE_SEEK : sprintf(str_report + strlen(str_report),"G0"); break;
-	    case MOTION_MODE_LINEAR : sprintf(str_report + strlen(str_report),"G1"); break;
-	    case MOTION_MODE_CW_ARC : sprintf(str_report + strlen(str_report),"G2"); break;
-	    case MOTION_MODE_CCW_ARC : sprintf(str_report + strlen(str_report),"G3"); break;
-	    case MOTION_MODE_NONE :  sprintf(str_report + strlen(str_report),"G80"); break;
-	    default:
-	      sprintf(str_report,"G38.%d", gc_state.modal.motion - (MOTION_MODE_PROBE_TOWARD-2));
-	}
+  switch (gc_state.modal.motion) {
+  	  case MOTION_MODE_SEEK : sprintf(str_report + strlen(str_report),"G0"); break;
+  	  case MOTION_MODE_LINEAR : sprintf(str_report + strlen(str_report),"G1"); break;
+  	  case MOTION_MODE_CW_ARC : sprintf(str_report + strlen(str_report),"G2"); break;
+  	  case MOTION_MODE_CCW_ARC : sprintf(str_report + strlen(str_report),"G3"); break;
+  	  case MOTION_MODE_NONE :  sprintf(str_report + strlen(str_report),"G80"); break;
+  	  default:
+  		  sprintf(str_report,"G38.%d", gc_state.modal.motion - (MOTION_MODE_PROBE_TOWARD-2));
+  }
 
-	sprintf(str_report + strlen(str_report)," G%d", gc_state.modal.coord_select+54);
-	sprintf(str_report + strlen(str_report)," G%d", gc_state.modal.plane_select+17);
-	sprintf(str_report + strlen(str_report)," G%d", 21-gc_state.modal.units);
-  	sprintf(str_report + strlen(str_report)," G%d", gc_state.modal.distance+90);
-	sprintf(str_report + strlen(str_report)," G%d", 94-gc_state.modal.feed_rate);
+  sprintf(str_report + strlen(str_report)," G%d", gc_state.modal.coord_select+54);
+  sprintf(str_report + strlen(str_report)," G%d", gc_state.modal.plane_select+17);
+  sprintf(str_report + strlen(str_report)," G%d", 21-gc_state.modal.units);
+  sprintf(str_report + strlen(str_report)," G%d", gc_state.modal.distance+90);
+  sprintf(str_report + strlen(str_report)," G%d", 94-gc_state.modal.feed_rate);
 
   if (gc_state.modal.program_flow) {
-    switch (gc_state.modal.program_flow) {
-      case PROGRAM_FLOW_PAUSED :
-    	  sprintf(str_report + strlen(str_report)," M0");
-    	  break;
-      // case PROGRAM_FLOW_OPTIONAL_STOP : serial_write('1'); break; // M1 is ignored and not supported.
-      case PROGRAM_FLOW_COMPLETED_M2 : 
-      case PROGRAM_FLOW_COMPLETED_M30 : 
-        sprintf(str_report + strlen(str_report)," M%d", gc_state.modal.program_flow);
-        break;
-    }
+	  switch (gc_state.modal.program_flow) {
+	  	  case PROGRAM_FLOW_PAUSED :
+	    	  sprintf(str_report + strlen(str_report)," M0");
+	    	  break;
+	      // case PROGRAM_FLOW_OPTIONAL_STOP : serial_write('1'); break; // M1 is ignored and not supported.
+	      case PROGRAM_FLOW_COMPLETED_M2 :
+	      case PROGRAM_FLOW_COMPLETED_M30 :
+	        sprintf(str_report + strlen(str_report)," M%d", gc_state.modal.program_flow);
+	        break;
+	  }
   }
 
   switch (gc_state.modal.spindle) {
-    case SPINDLE_ENABLE_CW :
-    	sprintf(str_report + strlen(str_report)," M3");
-    	break;
-    case SPINDLE_ENABLE_CCW :
-    	sprintf(str_report + strlen(str_report)," M4");
-    	break;
-    case SPINDLE_DISABLE :
-    	sprintf(str_report + strlen(str_report)," M5");
-    	break;
+  	  case SPINDLE_ENABLE_CW :
+	    	sprintf(str_report + strlen(str_report)," M3");
+	    	break;
+  	  case SPINDLE_ENABLE_CCW :
+	    	sprintf(str_report + strlen(str_report)," M4");
+	    	break;
+  	  case SPINDLE_DISABLE :
+	    	sprintf(str_report + strlen(str_report)," M5");
+	    	break;
   }
 
-  #ifdef ENABLE_M7
-    if (gc_state.modal.coolant) { // Note: Multiple coolant states may be active at the same time.
-      if (gc_state.modal.coolant & PL_COND_FLAG_COOLANT_MIST)
-      {
-    	  sprintf(str_report + strlen(str_report)," M7");
-      }
-      if (gc_state.modal.coolant & PL_COND_FLAG_COOLANT_FLOOD)
-      {
-    	  sprintf(str_report + strlen(str_report)," M8");
-      }
-    } else {
-    	sprintf(str_report + strlen(str_report)," M9");
-}
-  #else
-    if (gc_state.modal.coolant)
-    {
-    	sprintf(str_report + strlen(str_report)," M8");
-    }
-    else
-    {
-    	sprintf(str_report + strlen(str_report)," M9");
-    }
-  #endif
+#ifdef ENABLE_M7
+  if (gc_state.modal.coolant) { // Note: Multiple coolant states may be active at the same time.
+	  if (gc_state.modal.coolant & PL_COND_FLAG_COOLANT_MIST)
+	  {
+		  sprintf(str_report + strlen(str_report)," M7");
+	  }
+	  if (gc_state.modal.coolant & PL_COND_FLAG_COOLANT_FLOOD)
+	  {
+		  sprintf(str_report + strlen(str_report)," M8");
+	  }
+  } else {
+	  sprintf(str_report + strlen(str_report)," M9");
+  }
+#else
+  if (gc_state.modal.coolant)
+  {
+	  sprintf(str_report + strlen(str_report)," M8");
+  }
+  else
+  {
+	  sprintf(str_report + strlen(str_report)," M9");
+  }
+#endif
 
-	#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-		if (sys.override_ctrl == OVERRIDE_PARKING_MOTION) {
-			sprintf(str_report + strlen(str_report)," M56");
-		}
-	#endif
+#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+  if (sys.override_ctrl == OVERRIDE_PARKING_MOTION) {
+	  sprintf(str_report + strlen(str_report)," M56");
+  }
+#endif
 
   sprintf(str_report + strlen(str_report)," T%d", gc_state.tool);
 
   sprintf(str_report + strlen(str_report)," F%.0f", gc_state.feed_rate);
 
-  #ifdef VARIABLE_SPINDLE
-    sprintf(str_report + strlen(str_report)," S%.0f", gc_state.spindle_speed);
-  #endif
+#ifdef VARIABLE_SPINDLE
+  sprintf(str_report + strlen(str_report)," S%.0f", gc_state.spindle_speed);
+#endif
 
-   sprintf(str_report + strlen(str_report),"]\r\n");
-   CDC_send_str(str_report, strlen(str_report));
+  sprintf(str_report + strlen(str_report),"]\r\n");
+  CDC_send_str(str_report, strlen(str_report));
 }
 
 // Prints specified startup line
@@ -556,7 +340,7 @@ void report_execute_startup_message(char *line, uint8_t status_code)
 // Prints build info line
 void report_build_info(char *line)
 {
-  sprintf(str_report,"[VER: %s.%s:%s]\r\n", GCCTRL_VERSION, GCCTRL_VERSION_BUILD, line);
+  sprintf(str_report,"[VER: %s.%s:%s]\r\n", GRBL_VERSION, GRBL_VERSION_BUILD, line);
   CDC_send_str(str_report, strlen(str_report));
 }
 
@@ -579,299 +363,185 @@ void report_realtime_status()
 {
   uint8_t idx;
   int32_t current_position[N_AXIS]; // Copy current state of the system position variable
-  memcpy(current_position, sys_position, sizeof(sys_position));
+  memcpy(current_position,sys_position,sizeof(sys_position));
   float print_position[N_AXIS];
-  float print_w_position[N_AXIS];
-  system_convert_array_steps_to_mpos(print_position, current_position);
+  system_convert_array_steps_to_mpos(print_position,current_position);
 
   // Report current machine state and sub-states
   sprintf(str_report, "<");
-  switch (sys.state)
-  {
-  case STATE_IDLE:
-	  sprintf(str_report + strlen(str_report),"Idle");
-	  break;
-  case STATE_CYCLE:
-	  sprintf(str_report + strlen(str_report),"Run");
-	  break;
-  case STATE_HOLD:
-    if (!(sys.suspend & SUSPEND_JOG_CANCEL))
-    	{
-    		if (sys.suspend & SUSPEND_HOLD_COMPLETE)
-    		{
-    			sprintf(str_report + strlen(str_report),"Hold:0"); // Ready to resume
-    		}
-    		else
-    		{
-    			sprintf(str_report + strlen(str_report),"Hold:1"); // Actively holding
-    		}
-    	} // Continues to print jog state during jog cancel.
+  switch (sys.state) {
+    case STATE_IDLE: sprintf(str_report + strlen(str_report),"Idle"); break;
+    case STATE_CYCLE: sprintf(str_report + strlen(str_report),"Run"); break;
+    case STATE_HOLD:
+      if (!(sys.suspend & SUSPEND_JOG_CANCEL)) {
+        if (sys.suspend & SUSPEND_HOLD_COMPLETE) { sprintf(str_report + strlen(str_report),"Hold:0"); } // Ready to resume
+        else { sprintf(str_report + strlen(str_report),"Hold:1"); } // Actively holding
+        break;
+      } // Continues to print jog state during jog cancel.
       break;
-  case STATE_JOG:
-	  sprintf(str_report + strlen(str_report),"Jog");
-	  break;
-  case STATE_HOMING:
-	  sprintf(str_report + strlen(str_report),"Home");
-	  break;
-  case STATE_ALARM:
-	  sprintf(str_report + strlen(str_report),"Alarm");
-	  break;
-  case STATE_CHECK_MODE:
-	  sprintf(str_report + strlen(str_report),"Check");
-	  break;
+    case STATE_JOG: sprintf(str_report + strlen(str_report),"Jog"); break;
+    case STATE_HOMING: sprintf(str_report + strlen(str_report),"Home"); break;
+    case STATE_ALARM: sprintf(str_report + strlen(str_report),"Alarm"); break;
+    case STATE_CHECK_MODE: sprintf(str_report + strlen(str_report),"Check"); break;
 
-	  /*- `Hold:0` Hold complete. Ready to resume.
-		- `Hold:1` Hold in-progress. Reset will throw an alarm.
-		- `Door:0` Door closed. Ready to resume.
-		- `Door:1` Machine stopped. Door still ajar. Can't resume until closed.
-		- `Door:2` Door opened. Hold (or parking retract) in-progress. Reset will throw an alarm.
-		- `Door:3` Door closed and resuming. Restoring from park, if applicable. Reset will throw an alarm.
-		*/
-  case STATE_SAFETY_DOOR:
-    if (sys.suspend & SUSPEND_INITIATE_RESTORE)
-    {
-      sprintf(str_report + strlen(str_report),"Door:3");
-    }
-    else {
-      if (sys.suspend & SUSPEND_RETRACT_COMPLETE)
-      {
-        if (sys.suspend & SUSPEND_SAFETY_DOOR_AJAR)
-        {
-        	sprintf(str_report + strlen(str_report),"Door:1"); // Door ajar
+    /*- `Hold:0` Hold complete. Ready to resume.
+    - `Hold:1` Hold in-progress. Reset will throw an alarm.
+    - `Door:0` Door closed. Ready to resume.
+    - `Door:1` Machine stopped. Door still ajar. Can't resume until closed.
+    - `Door:2` Door opened. Hold (or parking retract) in-progress. Reset will throw an alarm.
+    - `Door:3` Door closed and resuming. Restoring from park, if applicable. Reset will throw an alarm.
+    */
+    case STATE_SAFETY_DOOR:
+      if (sys.suspend & SUSPEND_INITIATE_RESTORE) {
+    	  sprintf(str_report + strlen(str_report),"Door:3"); // Restoring
+      } else {
+        if (sys.suspend & SUSPEND_RETRACT_COMPLETE) {
+          if (sys.suspend & SUSPEND_SAFETY_DOOR_AJAR) {
+        	  sprintf(str_report + strlen(str_report),"Door:1"); // Door ajar
+          } else {
+        	  sprintf(str_report + strlen(str_report),"Door:0");
+          } // Door closed and ready to resume
+        } else {
+        	sprintf(str_report + strlen(str_report),"Door:2"); // Retracting
         }
-        else
-        {
-        	sprintf(str_report + strlen(str_report),"Door:0");
-        } // Door closed and ready to resume
       }
-      else {
-    	  sprintf(str_report + strlen(str_report),"Door:2"); // Retracting
-      }
-    }
-    break;
-  case STATE_SLEEP:
-	  sprintf(str_report + strlen(str_report),"Sleep");
-	  break;
-  } // end switch
+      break;
+      sprintf(str_report + strlen(str_report),"Sleep");
+  }
 
   float wco[N_AXIS];
-
-  //@if (bit_isfalse(settings.status_report_mask, BITFLAG_RT_STATUS_POSITION_TYPE) || (sys.report_wco_counter == 0))
-  if (bit_isfalse(settings.status_report_mask, BITFLAG_RT_STATUS_WMPOSITION_TYPE))
-  {
-    for (idx = 0; idx< N_AXIS; idx++)
-    {
-      print_w_position[idx] = 0.0f;
+  if (bit_isfalse(settings.status_report_mask,BITFLAG_RT_STATUS_POSITION_TYPE) ||
+      (sys.report_wco_counter == 0) ) {
+    for (idx=0; idx< N_AXIS; idx++) {
       // Apply work coordinate offsets and tool length offset to current position.
-      wco[idx] = gc_state.coord_system[idx] + gc_state.coord_offset[idx];
-      if (idx == TOOL_LENGTH_OFFSET_AXIS)
-      {
-    	  wco[idx] += gc_state.tool_length_offset;
+      wco[idx] = gc_state.coord_system[idx]+gc_state.coord_offset[idx];
+      if (idx == TOOL_LENGTH_OFFSET_AXIS) { wco[idx] += gc_state.tool_length_offset; }
+      if (bit_isfalse(settings.status_report_mask,BITFLAG_RT_STATUS_POSITION_TYPE)) {
+        print_position[idx] -= wco[idx];
       }
-      print_w_position[idx] = print_position[idx] - wco[idx];
     }
   }
 
   // Report machine position
-  if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_WMPOSITION_TYPE))
-  {
+  if (bit_istrue(settings.status_report_mask,BITFLAG_RT_STATUS_POSITION_TYPE)) {
 	  sprintf(str_report + strlen(str_report),"|MPos:");
-      sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f", print_position[X_AXIS], print_position[Y_AXIS], print_position[Z_AXIS]);
-      if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_A_AXIS)) sprintf(str_report + strlen(str_report),",%.3f", print_position[A_AXIS]);
+  } else {
+	  sprintf(str_report + strlen(str_report),"|WPos:");
   }
-  else
-  {
-	sprintf(str_report + strlen(str_report),"|WPos:");
-    sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f", print_w_position[X_AXIS], print_w_position[Y_AXIS], print_w_position[Z_AXIS]);
-    if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_A_AXIS)) sprintf(str_report + strlen(str_report),",%.3f", print_w_position[A_AXIS]);
-  }
+  sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f", print_position[X_AXIS], print_position[Y_AXIS], print_position[Z_AXIS]);
+
 
   // Returns planner and serial read buffer states.
-#ifdef REPORT_FIELD_BUFFER_STATE
-	sprintf(str_report + strlen(str_report),"|Bf:%d,%d", (int)plan_get_block_buffer_available(), (int)serial_get_rx_buffer_available());
-#endif
-
-#ifdef USE_LINE_NUMBERS
-#ifdef REPORT_FIELD_LINE_NUMBERS
-  // Report current line number
-  plan_block_t * cur_block = plan_get_current_block();
-  if (cur_block != NULL)
-  {
-    uint32_t ln = cur_block->line_number;
-    if (ln > 0)
-    {
-    	sprintf(str_report + strlen(str_report),"|Ln:%d", (int)ln);
+  #ifdef REPORT_FIELD_BUFFER_STATE
+    if (bit_istrue(settings.status_report_mask,BITFLAG_RT_STATUS_BUFFER_STATE)) {
+    	sprintf(str_report + strlen(str_report),"|Bf:%d,%d", (int)plan_get_block_buffer_available(), (int)serial_get_rx_buffer_available());
     }
-  }
-#endif
-#endif
+  #endif
+
+  #ifdef USE_LINE_NUMBERS
+    #ifdef REPORT_FIELD_LINE_NUMBERS
+      // Report current line number
+      plan_block_t * cur_block = plan_get_current_block();
+      if (cur_block != NULL) {
+        uint32_t ln = cur_block->line_number;
+        if (ln > 0) {
+        	sprintf(str_report + strlen(str_report),"|Ln:%d", (int)ln);
+        }
+      }
+    #endif
+  #endif
 
   // Report realtime feed speed
-#ifdef REPORT_FIELD_CURRENT_FEED_SPEED
-	#ifdef VARIABLE_SPINDLE
-	  sprintf(str_report + strlen(str_report),"|FS:%.0f,%.0f", st_get_realtime_rate(), sys.spindle_speed);
-	#else
-	  else sprintf(str_report + strlen(str_report),"|F:%.0f", st_get_realtime_rate());
-	#endif
-#endif
+  #ifdef REPORT_FIELD_CURRENT_FEED_SPEED
+    #ifdef VARIABLE_SPINDLE
+      sprintf(str_report + strlen(str_report),"|FS:%.0f,%.0f", st_get_realtime_rate(), sys.spindle_speed);
+    #else
+      sprintf(str_report + strlen(str_report),"|F:%.0f", st_get_realtime_rate());
+    #endif      
+  #endif
 
-#ifdef REPORT_INPUT_STATE
-  if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_INPUTS)) {
-	  sprintf(str_report + strlen(str_report),"|IO:%d", (int)input_get_state());
-  }
-#endif
+  #ifdef REPORT_FIELD_PIN_STATE
+    uint8_t lim_pin_state = limits_get_state();
+    uint8_t ctrl_pin_state = system_control_get_state();
+    uint8_t prb_pin_state = probe_get_state();
+    if (lim_pin_state | ctrl_pin_state | prb_pin_state) {
+    	sprintf(str_report + strlen(str_report),"|Pn:");
+      if (prb_pin_state) { sprintf(str_report + strlen(str_report),"P"); }
+      if (lim_pin_state) {
+        #ifdef ENABLE_DUAL_AXIS
+          #if (DUAL_AXIS_SELECT == X_AXIS)
+            if (bit_istrue(lim_pin_state,(bit(X_AXIS)|bit(N_AXIS)))) { serial_write('X'); }
+            if (bit_istrue(lim_pin_state,bit(Y_AXIS))) { serial_write('Y'); }
+          #endif
+          #if (DUAL_AXIS_SELECT == Y_AXIS)
+            if (bit_istrue(lim_pin_state,bit(X_AXIS))) { serial_write('X'); }
+            if (bit_istrue(lim_pin_state,(bit(Y_AXIS)|bit(N_AXIS)))) { serial_write('Y'); }
+          #endif
+          if (bit_istrue(lim_pin_state,bit(Z_AXIS))) { serial_write('Z'); }
+        #else
+          if (bit_istrue(lim_pin_state,bit(X_AXIS))) { sprintf(str_report + strlen(str_report),"X"); }
+          if (bit_istrue(lim_pin_state,bit(Y_AXIS))) { sprintf(str_report + strlen(str_report),"Y"); }
+          if (bit_istrue(lim_pin_state,bit(Z_AXIS))) { sprintf(str_report + strlen(str_report),"Z"); }
+        #endif
+      }
+      if (ctrl_pin_state) {
+        #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
+          if (bit_istrue(ctrl_pin_state,CONTROL_PIN_INDEX_SAFETY_DOOR)) { sprintf(str_report + strlen(str_report),"D"); }
+        #endif
+        if (bit_istrue(ctrl_pin_state,CONTROL_PIN_INDEX_RESET)) { sprintf(str_report + strlen(str_report),"R"); }
+        if (bit_istrue(ctrl_pin_state,CONTROL_PIN_INDEX_FEED_HOLD)) { sprintf(str_report + strlen(str_report),"H"); }
+        if (bit_istrue(ctrl_pin_state,CONTROL_PIN_INDEX_CYCLE_START)) { sprintf(str_report + strlen(str_report),"S"); }
+      }
+    }
+  #endif
 
-#ifdef REPORT_OUTPUT_STATE
-  if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_OUTPUTS)) {
-  	  sprintf(str_report + strlen(str_report),",%d", (int)output_get_state());
+  #ifdef REPORT_FIELD_WORK_COORD_OFFSET
+    if (sys.report_wco_counter > 0) { sys.report_wco_counter--; }
+    else {
+      if (sys.state & (STATE_HOMING | STATE_CYCLE | STATE_HOLD | STATE_JOG | STATE_SAFETY_DOOR)) {
+        sys.report_wco_counter = (REPORT_WCO_REFRESH_BUSY_COUNT-1); // Reset counter for slow refresh
+      } else { sys.report_wco_counter = (REPORT_WCO_REFRESH_IDLE_COUNT-1); }
+      if (sys.report_ovr_counter == 0) { sys.report_ovr_counter = 1; } // Set override on next report.
+      sprintf(str_report + strlen(str_report),"|WCO:");
+      sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f", wco[X_AXIS], wco[Y_AXIS], wco[Z_AXIS]);
     }
-#endif
+  #endif
 
-#ifdef REPORT_FIELD_PIN_STATE
-  uint8_t lim_pin_state = limits_get_state();
-  uint8_t ctrl_pin_state = system_control_get_state();
-  uint8_t prb_pin_state = probe_get_state();
-  if (lim_pin_state | ctrl_pin_state | prb_pin_state)
-  {
-    sprintf(str_report + strlen(str_report),"|Pn:");
-    if (prb_pin_state)
-    {
-    	sprintf(str_report + strlen(str_report),"P");
-    }
-    if (lim_pin_state)
-    {
-      if (bit_istrue(lim_pin_state, bit(X_AXIS)))
-      {
-    	  sprintf(str_report + strlen(str_report),"X");
-      }
-      if (bit_istrue(lim_pin_state, bit(Y_AXIS)))
-      {
-    	  sprintf(str_report + strlen(str_report),"Y");
-      }
-      if (bit_istrue(lim_pin_state, bit(Z_AXIS)))
-      {
-    	  sprintf(str_report + strlen(str_report),"Z");
-      }
-    }
-    if (ctrl_pin_state)
-    {
-#ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
-      if (bit_istrue(ctrl_pin_state, CONTROL_PIN_INDEX_SAFETY_DOOR))
-      {
-    	  sprintf(str_report + strlen(str_report),"D");
-      }
-#endif
-      if (bit_istrue(ctrl_pin_state, CONTROL_PIN_INDEX_RESET))
-      {
-    	  sprintf(str_report + strlen(str_report),"R");
-      }
-      if (bit_istrue(ctrl_pin_state, CONTROL_PIN_INDEX_FEED_HOLD))
-      {
-    	  sprintf(str_report + strlen(str_report),"H");
-      }
-      if (bit_istrue(ctrl_pin_state, CONTROL_PIN_INDEX_CYCLE_START))
-      {
-    	  sprintf(str_report + strlen(str_report),"S");
-      }
-    }
-  }
-#endif
-
-#ifdef REPORT_FIELD_WORK_COORD_OFFSET
-  if (sys.report_wco_counter > 0)
-  {
-	  sys.report_wco_counter--;
-  }
-  else
-  {
-    if (sys.state & (STATE_HOMING | STATE_CYCLE | STATE_HOLD | STATE_JOG | STATE_SAFETY_DOOR))
-    {
-      sys.report_wco_counter = (REPORT_WCO_REFRESH_BUSY_COUNT - 1); // Reset counter for slow refresh
-    }
-    else
-    {
-    	sys.report_wco_counter = (REPORT_WCO_REFRESH_IDLE_COUNT - 1);
-    }
-    if (sys.report_ovr_counter == 0)
-    {
-    	sys.report_ovr_counter = 1; // Set override on next report.
-    }
-  }
-#endif
-
-#ifdef REPORT_FIELD_IO
-  if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_IO))
-    {
-	  sprintf(str_report + strlen(str_report),"|Io:%d,%d", 0, 0);
-    }
-#endif
-
-#ifdef REPORT_FIELD_OVERRIDES
-    if (sys.report_ovr_counter > 0)
-    {
-    	sys.report_ovr_counter--;
-    }
-    else
-    {
-      if (sys.state & (STATE_HOMING | STATE_CYCLE | STATE_HOLD | STATE_JOG | STATE_SAFETY_DOOR))
-      {
-        sys.report_ovr_counter = (REPORT_OVR_REFRESH_BUSY_COUNT - 1); // Reset counter for slow refresh
-      }
-      else
-      {
-    	  sys.report_ovr_counter = (REPORT_OVR_REFRESH_IDLE_COUNT - 1);
-      }
-
-      if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_OVR))
-    	  sprintf(str_report + strlen(str_report),"|Ov:%d,%d,%d",sys.f_override, sys.r_override, sys.spindle_speed_ovr);
+  #ifdef REPORT_FIELD_OVERRIDES
+    if (sys.report_ovr_counter > 0) { sys.report_ovr_counter--; }
+    else {
+      if (sys.state & (STATE_HOMING | STATE_CYCLE | STATE_HOLD | STATE_JOG | STATE_SAFETY_DOOR)) {
+        sys.report_ovr_counter = (REPORT_OVR_REFRESH_BUSY_COUNT-1); // Reset counter for slow refresh
+      } else { sys.report_ovr_counter = (REPORT_OVR_REFRESH_IDLE_COUNT-1); }
+      sprintf(str_report + strlen(str_report),"|Ov:%d,%d,%d",sys.f_override, sys.r_override, sys.spindle_speed_ovr);
 
       uint8_t sp_state = spindle_get_state();
       uint8_t cl_state = coolant_get_state();
       if (sp_state || cl_state) {
-    		  sprintf(str_report + strlen(str_report),"|A:");
-    		  if (sp_state)
-    		  { // != SPINDLE_STATE_DISABLE
-          	  #ifdef VARIABLE_SPINDLE
-            	#ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
-    			  sprintf(str_report + strlen(str_report),"S"); // CW
-            	#else
-    			  if (sp_state == SPINDLE_STATE_CW)
-    			  {
-    				  sprintf(str_report + strlen(str_report),"S"); // CW
-    			  }
-    			  else
-    			  {
-    				  sprintf(str_report + strlen(str_report),"C"); // CCW
-    			  }
-            	#endif
-          	  #else
-    			  if (sp_state & SPINDLE_STATE_CW)
-    			  {
-    				  sprintf(str_report + strlen(str_report),"S"); // CW
-    			  }
-    			  else
-    			  {
-    				  sprintf(str_report + strlen(str_report),"C"); // CCW
-    			  }
-          	  #endif
-    		  }
-    		  if (cl_state & COOLANT_STATE_FLOOD)
-    		  {
-    			  sprintf(str_report + strlen(str_report),"F");
-    		  }
-        	#ifdef ENABLE_M7
-    		  if (cl_state & COOLANT_STATE_MIST)
-    		  {
-    			  sprintf(str_report + strlen(str_report),"M");
-    		  }
-        	#endif
-    	  }
+    	  sprintf(str_report + strlen(str_report),"|A:");
+        if (sp_state) { // != SPINDLE_STATE_DISABLE
+          #ifdef VARIABLE_SPINDLE 
+            #ifdef USE_SPINDLE_DIR_AS_ENABLE_PIN
+              serial_write('S'); // CW
+            #else
+              if (sp_state == SPINDLE_STATE_CW) { sprintf(str_report + strlen(str_report),"S"); } // CW
+              else { sprintf(str_report + strlen(str_report),"C"); } // CCW
+            #endif
+          #else
+            if (sp_state & SPINDLE_STATE_CW) { sprintf(str_report + strlen(str_report),"S"); } // CW
+            else { sprintf(str_report + strlen(str_report),"C"); } // CCW
+          #endif
+        }
+        if (cl_state & COOLANT_STATE_FLOOD) { sprintf(str_report + strlen(str_report),"F"); }
+        #ifdef ENABLE_M7
+          if (cl_state & COOLANT_STATE_MIST) { sprintf(str_report + strlen(str_report),"M"); }
+        #endif
+      }  
     }
   #endif
 
     sprintf(str_report + strlen(str_report),">\r\n");
-
-	CDC_send_str(str_report, strlen(str_report));
+    CDC_send_str(str_report, strlen(str_report));
 }
 
 
@@ -881,4 +551,3 @@ void report_realtime_status()
 
   }
 #endif
-

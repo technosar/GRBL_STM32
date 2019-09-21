@@ -34,7 +34,6 @@
 // NOTE: OEMs can avoid the need to maintain/update the defaults.h and cpu_map.h files and use only
 // one configuration file by placing their specific defaults and pin map at the bottom of this file.
 // If doing so, simply comment out these two defines and see instructions below.
-//#define DEFAULTS_GENERIC
 #define DEFAULT_CNC3020
 
 // Serial baud rate
@@ -52,7 +51,6 @@
 #define CMD_STATUS_REPORT '?'
 #define CMD_CYCLE_START '~'
 #define CMD_FEED_HOLD '!'
-#define CMD_SYSTEM '$'
 
 // NOTE: All override realtime commands must be in the extended ASCII character set, starting
 // at character value 128 (0x80) and up to 255 (0xFF). If the normal set of realtime commands,
@@ -82,8 +80,6 @@
 #define CMD_SPINDLE_OVR_STOP 0x9E
 #define CMD_COOLANT_FLOOD_OVR_TOGGLE 0xA0
 #define CMD_COOLANT_MIST_OVR_TOGGLE 0xA1
-
-#define CMD_SET_OUTPUT    0xD0
 
 // If homing is enabled, homing init lock sets Grbl into an alarm state upon power up. This forces
 // the user to perform the homing cycle (or override the locks) before doing anything else. This is
@@ -175,7 +171,7 @@
 // immediately forces a feed hold and then safely de-energizes the machine. Resuming is blocked until
 // the safety door is re-engaged. When it is, Grbl will re-energize the machine and then resume on the
 // previous tool path, as if nothing happened.
-// #define ENABLE_SAFETY_DOOR_INPUT_PIN // Default disabled. Uncomment to enable.
+#define ENABLE_SAFETY_DOOR_INPUT_PIN // Default disabled. Uncomment to enable.
 
 // After the safety door switch has been toggled and restored, this setting sets the power-up delay
 // between restoring the spindle and coolant and resuming the cycle.
@@ -196,7 +192,7 @@
 // NOTE: The top option will mask and invert all control pins. The bottom option is an example of
 // inverting only two control pins, the safety door and reset. See cpu_map.h for other bit definitions.
 // #define INVERT_CONTROL_PIN_MASK CONTROL_MASK // Default disabled. Uncomment to disable.
-// #define INVERT_CONTROL_PIN_MASK ((1<<CONTROL_SAFETY_DOOR_BIT)|(CONTROL_RESET_BIT)) // Default disabled.
+// #define INVERT_CONTROL_PIN_MASK ((1<<CONTROL_SAFETY_DOOR_BIT)|(1<<CONTROL_RESET_BIT)) // Default disabled.
 
 // Inverts select limit pin states based on the following mask. This effects all limit pin functions,
 // such as hard limits and homing. However, this is different from overall invert limits setting.
@@ -269,13 +265,12 @@
 // be sent without potential performance issues.
 // NOTE: The options below are here only provide a way to disable certain data fields if a unique
 // situation demands it, but be aware GUIs may depend on this data. If disabled, it may not be compatible.
-#define REPORT_FIELD_BUFFER_STATE          // Default enabled. Comment to disable.
-#undef REPORT_FIELD_PIN_STATE // Default enabled. Comment to disable.
-#define REPORT_FIELD_CURRENT_FEED_SPEED    // Default enabled. Comment to disable.
-#define REPORT_FIELD_WORK_COORD_OFFSET     // Default enabled. Comment to disable.
-#define REPORT_FIELD_OVERRIDES             // Default enabled. Comment to disable.
-#define REPORT_FIELD_LINE_NUMBERS          // Default enabled. Comment to disable.
-#define REPORT_FIELD_IO                    // Default enabled. Comment to disable.
+#define REPORT_FIELD_BUFFER_STATE // Default enabled. Comment to disable.
+#define REPORT_FIELD_PIN_STATE // Default enabled. Comment to disable.
+#define REPORT_FIELD_CURRENT_FEED_SPEED // Default enabled. Comment to disable.
+#define REPORT_FIELD_WORK_COORD_OFFSET // Default enabled. Comment to disable.
+#define REPORT_FIELD_OVERRIDES // Default enabled. Comment to disable.
+#define REPORT_FIELD_LINE_NUMBERS // Default enabled. Comment to disable.
 
 // Some status report data isn't necessary for realtime, only intermittently, because the values don't
 // change often. The following macros configures how many times a status report needs to be called before
@@ -463,10 +458,8 @@
 // 115200 baud will take 5 msec to transmit a typical 55 character report. Worst case reports are
 // around 90-100 characters. As long as the serial TX buffer doesn't get continually maxed, Grbl
 // will continue operating efficiently. Size the TX buffer around the size of a worst-case report.
-#if !defined (STM32F103C8)
 // #define RX_BUFFER_SIZE 128 // (1-254) Uncomment to override defaults in serial.h
 // #define TX_BUFFER_SIZE 100 // (1-254)
-#endif
 
 // A simple software debouncing feature for hard limit switches. When enabled, the interrupt 
 // monitoring the hard limit switch pins will enable the Arduino's watchdog timer to re-check 
@@ -498,8 +491,8 @@
 // uses the homing pull-off distance setting times the LOCATE_SCALAR to pull-off and re-engage
 // the limit switch.
 // NOTE: Both of these values must be greater than 1.0 to ensure proper function.
-// #define HOMING_AXIS_SEARCH_SCALAR  1.5f // Uncomment to override defaults in limits.c.
-// #define HOMING_AXIS_LOCATE_SCALAR  10.0f // Uncomment to override defaults in limits.c.
+// #define HOMING_AXIS_SEARCH_SCALAR  1.5 // Uncomment to override defaults in limits.c.
+// #define HOMING_AXIS_LOCATE_SCALAR  10.0 // Uncomment to override defaults in limits.c.
 
 // Enable the '$RST=*', '$RST=$', and '$RST=#' eeprom restore commands. There are cases where
 // these commands may be undesirable. Simply comment the desired macro to disable it.
@@ -592,9 +585,11 @@
 // to ensure the laser doesn't inadvertently remain powered while at a stop and cause a fire.
 #define DISABLE_LASER_DURING_HOLD // Default enabled. Comment to disable.
 
-// Enables a piecewise linear model of the spindle PWM/speed output. Requires a solution by the
-// 'fit_nonlinear_spindle.py' script in the /doc/script folder of the repo. See file comments 
-// on how to gather spindle data and run the script to generate a solution.
+// This feature alters the spindle PWM/speed to a nonlinear output with a simple piecewise linear
+// curve. Useful for spindles that don't produce the right RPM from Grbl's standard spindle PWM 
+// linear model. Requires a solution by the 'fit_nonlinear_spindle.py' script in the /doc/script
+// folder of the repo. See file comments on how to gather spindle data and run the script to
+// generate a solution.
 // #define ENABLE_PIECEWISE_LINEAR_SPINDLE  // Default disabled. Uncomment to enable.
 
 // N_PIECES, RPM_MAX, RPM_MIN, RPM_POINTxx, and RPM_LINE_XX constants are all set and given by
@@ -615,6 +610,69 @@
 #define RPM_LINE_B3  4.881851e+02
 #define RPM_LINE_A4  1.203413e-01  // Used N_PIECES = 4. A and B constants of line 4.
 #define RPM_LINE_B4  1.151360e+03
+
+/* --------------------------------------------------------------------------------------- 
+  This optional dual axis feature is primarily for the homing cycle to locate two sides of 
+  a dual-motor gantry independently, i.e. self-squaring. This requires an additional limit
+  switch for the cloned motor. To self square, both limit switches on the cloned axis must
+  be physically positioned to trigger when the gantry is square. Highly recommend keeping  
+  the motors always enabled to ensure the gantry stays square with the $1=255 setting.
+
+  For Grbl on the Arduino Uno, the cloned axis limit switch must to be shared with and 
+  wired with z-axis limit pin due to the lack of available pins. The homing cycle must home
+  the z-axis and cloned axis in different cycles, which is already the default config.
+
+  The dual axis feature works by cloning an axis step output onto another pair of step
+  and direction pins. The step pulse and direction of the cloned motor can be set 
+  independently of the main axis motor. However to save precious flash and memory, this
+  dual axis feature must share the same settings (step/mm, max speed, acceleration) as the 
+  parent motor. This is NOT a feature for an independent fourth axis. Only a motor clone.
+
+  WARNING: Make sure to test the directions of your dual axis motors! They must be setup
+  to move the same direction BEFORE running your first homing cycle or any long motion!
+  Motors moving in opposite directions can cause serious damage to your machine! Use this 
+  dual axis feature at your own risk.
+*/
+// NOTE: This feature requires approximately 400 bytes of flash. Certain configurations can
+// run out of flash to fit on an Arduino 328p/Uno. Only X and Y axes are supported. Variable
+// spindle/laser mode IS supported, but only for one config option. Core XY, spindle direction
+// pin, and M7 mist coolant are disabled/not supported.
+// #define ENABLE_DUAL_AXIS	// Default disabled. Uncomment to enable.
+
+// Select the one axis to mirror another motor. Only X and Y axis is supported at this time.
+#define DUAL_AXIS_SELECT  X_AXIS  // Must be either X_AXIS or Y_AXIS
+
+// To prevent the homing cycle from racking the dual axis, when one limit triggers before the
+// other due to switch failure or noise, the homing cycle will automatically abort if the second 
+// motor's limit switch does not trigger within the three distance parameters defined below. 
+// Axis length percent will automatically compute a fail distance as a percentage of the max
+// travel of the other non-dual axis, i.e. if dual axis select is X_AXIS at 5.0%, then the fail 
+// distance will be computed as 5.0% of y-axis max travel. Fail distance max and min are the 
+// limits of how far or little a valid fail distance is.
+#define DUAL_AXIS_HOMING_FAIL_AXIS_LENGTH_PERCENT  5.0  // Float (percent)
+#define DUAL_AXIS_HOMING_FAIL_DISTANCE_MAX  25.0  // Float (mm)
+#define DUAL_AXIS_HOMING_FAIL_DISTANCE_MIN  2.5  // Float (mm)
+
+// Dual axis pin configuration currently supports two shields. Uncomment the shield you want,
+// and comment out the other one(s).
+// NOTE: Protoneer CNC Shield v3.51 has A.STP and A.DIR wired to pins A4 and A3 respectively.
+// The variable spindle (i.e. laser mode) build option works and may be enabled or disabled.
+// Coolant pin A3 is moved to D13, replacing spindle direction.
+#define DUAL_AXIS_CONFIG_PROTONEER_V3_51    // Uncomment to select. Comment other configs.
+
+// NOTE: Arduino CNC Shield Clone (Originally Protoneer v3.0) has A.STP and A.DIR wired to 
+// D12 and D13, respectively. With the limit pins and stepper enable pin on this same port,
+// the spindle enable pin had to be moved and spindle direction pin deleted. The spindle
+// enable pin now resides on A3, replacing coolant enable. Coolant enable is bumped over to
+// pin A4. Spindle enable is used far more and this pin setup helps facilitate users to 
+// integrate this feature without arguably too much work. 
+// Variable spindle (i.e. laser mode) does NOT work with this shield as configured. While
+// variable spindle technically can work with this shield, it requires too many changes for
+// most user setups to accomodate. It would best be implemented by sharing all limit switches
+// on pins D9/D10 (as [X1,Z]/[X2,Y] or [X,Y2]/[Y1,Z]), home each axis independently, and 
+// updating lots of code to ensure everything is running correctly.
+// #define DUAL_AXIS_CONFIG_CNC_SHIELD_CLONE  // Uncomment to select. Comment other configs.
+
 
 /* ---------------------------------------------------------------------------------------
    OEM Single File Configuration Option

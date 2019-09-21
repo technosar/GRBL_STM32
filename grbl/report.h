@@ -20,8 +20,6 @@
 #ifndef report_h
 #define report_h
 
-#include "settings.h"
-
 // Define Grbl status codes. Valid values (0-255)
 #define STATUS_OK 0
 #define STATUS_EXPECTED_COMMAND_LETTER 1
@@ -62,8 +60,6 @@
 #define STATUS_GCODE_G43_DYNAMIC_AXIS_ERROR 37
 #define STATUS_GCODE_MAX_VALUE_EXCEEDED 38
 
-#define STATUS_QUIET 200
-
 // Define Grbl alarm codes. Valid values (1-255). 0 is reserved.
 #define ALARM_HARD_LIMIT_ERROR      EXEC_ALARM_HARD_LIMIT
 #define ALARM_SOFT_LIMIT_ERROR      EXEC_ALARM_SOFT_LIMIT
@@ -88,18 +84,6 @@
 #define MESSAGE_SPINDLE_RESTORE 10
 #define MESSAGE_SLEEP_MODE 11
 
-void text_print(void *nv);
-void text_print_null(void *nv);
-void text_print_bool(cfgItem_t *nv);
-void text_print_float(cfgItem_t *nv);
-void text_print_int(cfgItem_t *nv);
-void text_print_str(cfgItem_t *nv);
-void text_print_nul(cfgItem_t *nv);
-void text_print_help(cfgItem_t *nv);
-
-// Prints parameters value
-void report_parameter(unsigned int id, float param, int valuetype);
-
 // Prints system status messages.
 void report_status_message(uint8_t status_code);
 
@@ -108,9 +92,6 @@ void report_alarm_message(uint8_t alarm_code);
 
 // Prints miscellaneous feedback messages.
 void report_feedback_message(uint8_t message_code);
-
-// Prints gcode messages.
-void report_gcode_message(char *msg);
 
 // Prints welcome message
 void report_init_message();

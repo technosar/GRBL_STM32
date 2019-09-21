@@ -20,21 +20,14 @@
 */
 
 #include "grbl.h"
-#include "param.h"
 
 // Define line flags. Includes comment type tracking and line overflow detection.
 #define LINE_FLAG_OVERFLOW bit(0)
 #define LINE_FLAG_COMMENT_PARENTHESES bit(1)
 #define LINE_FLAG_COMMENT_SEMICOLON bit(2)
 
-extern setup _setup;
-extern TIM_HandleTypeDef htim5;
 
 static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
-static char msg[LINE_BUFFER_SIZE];  // Message to be send. Zero-terminated.
-
-int32_t cur_position[N_AXIS]; // Copy current state of the system position variable
-float position[N_AXIS];
 
 static void protocol_exec_rt_suspend();
 
@@ -77,20 +70,12 @@ void protocol_main_loop()
 
   uint8_t line_flags = 0;
   uint8_t char_counter = 0;
-  uint8_t msg_char_count = 0;
   uint8_t c;
-  int counter = 0;
-  int res;
-  int index;
-
   for (;;) {
 
     // Process one line of incoming serial data, as the data becomes available. Performs an
     // initial filtering by removing spaces and comments and capitalizing all letters.
     while((c = serial_read()) != SERIAL_NO_DATA) {
-
-      msg[msg_char_count++] = c;
-
       if ((c == '\n') || (c == '\r')) { // End of line reached
 
         protocol_execute_realtime(); // Runtime command check point.
@@ -111,13 +96,6 @@ void protocol_main_loop()
         } else if (line[0] == '$') {
           // Grbl '$' system command
           report_status_message(system_execute_line(line));
-        } else if (line[0] == '#') {
-        	res = read_parameter_setting(&line[0], &counter, _setup.parameters, &index);
-        	if (res) report_status_message(res);
-        	counter = 0;
-        } else if (line[0] == '[') {
-        	report_gcode_message(&msg[0]);
-        	report_status_message(STATUS_OK);
         } else if (sys.state & (STATE_ALARM | STATE_JOG)) {
           // Everything else is gcode. Block if in alarm or jog mode.
           report_status_message(STATUS_SYSTEM_GC_LOCK);
@@ -129,7 +107,6 @@ void protocol_main_loop()
         // Reset tracking data for next line.
         line_flags = 0;
         char_counter = 0;
-        msg_char_count = 0;
 
       } else {
 
@@ -166,9 +143,8 @@ void protocol_main_loop()
             line_flags |= LINE_FLAG_OVERFLOW;
           } else if (c >= 'a' && c <= 'z') { // Upcase lowercase
             line[char_counter++] = c-'a'+'A';
-
           } else {
-        		  line[char_counter++] = c;
+            line[char_counter++] = c;
           }
         }
 
@@ -229,18 +205,16 @@ void protocol_auto_cycle_start()
 void protocol_execute_realtime()
 {
   protocol_exec_rt_system();
-  if (sys.suspend)
-  {
-	  protocol_exec_rt_suspend();
-  }
+  if (sys.suspend) { protocol_exec_rt_suspend(); }
 }
+
 
 // Executes run-time commands, when required. This function primarily operates as Grbl's state
 // machine and controls the various real-time features Grbl has to offer.
 // NOTE: Do not alter this unless you know exactly what you are doing!
 void protocol_exec_rt_system()
 {
-  uint32_t rt_exec; // Temp variable to avoid calling volatile multiple times.
+  uint8_t rt_exec; // Temp variable to avoid calling volatile multiple times.
   rt_exec = sys_rt_exec_alarm; // Copy volatile sys_rt_exec_alarm.
   if (rt_exec) { // Enter only if any bit flag is true
     // System alarm. Everything has shutdown by something that has gone severely wrong. Report
@@ -282,77 +256,75 @@ void protocol_exec_rt_system()
     // main program processes until either reset or resumed. This ensures a hold completes safely.
     if (rt_exec & (EXEC_MOTION_CANCEL | EXEC_FEED_HOLD | EXEC_SAFETY_DOOR | EXEC_SLEEP)) {
 
-    	// State check for allowable states for hold methods.
-    	if (!(sys.state & (STATE_ALARM | STATE_CHECK_MODE))) {
+      // State check for allowable states for hold methods.
+      if (!(sys.state & (STATE_ALARM | STATE_CHECK_MODE))) {
       
-    		// If in CYCLE or JOG states, immediately initiate a motion HOLD.
-    		if (sys.state & (STATE_CYCLE | STATE_JOG)) {
-    			if (!(sys.suspend & (SUSPEND_MOTION_CANCEL | SUSPEND_JOG_CANCEL))) { // Block, if already holding.
-    				st_update_plan_block_parameters(); // Notify stepper module to recompute for hold deceleration.
-    				sys.step_control = STEP_CONTROL_EXECUTE_HOLD; // Initiate suspend state with active flag.
-    				if (sys.state == STATE_JOG) { // Jog cancelled upon any hold event, except for sleeping.
-    					if (!(rt_exec & EXEC_SLEEP)) { sys.suspend |= SUSPEND_JOG_CANCEL; }
-    				}
-    			}
-    		}
+        // If in CYCLE or JOG states, immediately initiate a motion HOLD.
+        if (sys.state & (STATE_CYCLE | STATE_JOG)) {
+          if (!(sys.suspend & (SUSPEND_MOTION_CANCEL | SUSPEND_JOG_CANCEL))) { // Block, if already holding.
+            st_update_plan_block_parameters(); // Notify stepper module to recompute for hold deceleration.
+            sys.step_control = STEP_CONTROL_EXECUTE_HOLD; // Initiate suspend state with active flag.
+            if (sys.state == STATE_JOG) { // Jog cancelled upon any hold event, except for sleeping.
+              if (!(rt_exec & EXEC_SLEEP)) { sys.suspend |= SUSPEND_JOG_CANCEL; } 
+            }
+          }
+        }
+        // If IDLE, Grbl is not in motion. Simply indicate suspend state and hold is complete.
+        if (sys.state == STATE_IDLE) { sys.suspend = SUSPEND_HOLD_COMPLETE; }
 
-    		// If IDLE, Grbl is not in motion. Simply indicate suspend state and hold is complete.
-    		if (sys.state == STATE_IDLE) {
-    			sys.suspend = SUSPEND_HOLD_COMPLETE;
-    		}
+        // Execute and flag a motion cancel with deceleration and return to idle. Used primarily by probing cycle
+        // to halt and cancel the remainder of the motion.
+        if (rt_exec & EXEC_MOTION_CANCEL) {
+          // MOTION_CANCEL only occurs during a CYCLE, but a HOLD and SAFETY_DOOR may been initiated beforehand
+          // to hold the CYCLE. Motion cancel is valid for a single planner block motion only, while jog cancel
+          // will handle and clear multiple planner block motions.
+          if (!(sys.state & STATE_JOG)) { sys.suspend |= SUSPEND_MOTION_CANCEL; } // NOTE: State is STATE_CYCLE.
+        }
 
-    		// Execute and flag a motion cancel with deceleration and return to idle. Used primarily by probing cycle
-    		// to halt and cancel the remainder of the motion.
-    		if (rt_exec & EXEC_MOTION_CANCEL) {
-    			// MOTION_CANCEL only occurs during a CYCLE, but a HOLD and SAFETY_DOOR may been initiated beforehand
-    			// to hold the CYCLE. Motion cancel is valid for a single planner block motion only, while jog cancel
-    			// will handle and clear multiple planner block motions.
-    			if (!(sys.state & STATE_JOG)) { sys.suspend |= SUSPEND_MOTION_CANCEL; } // NOTE: State is STATE_CYCLE.
-    		}
+        // Execute a feed hold with deceleration, if required. Then, suspend system.
+        if (rt_exec & EXEC_FEED_HOLD) {
+          // Block SAFETY_DOOR, JOG, and SLEEP states from changing to HOLD state.
+          if (!(sys.state & (STATE_SAFETY_DOOR | STATE_JOG | STATE_SLEEP))) { sys.state = STATE_HOLD; }
+        }
 
-    		// Execute a feed hold with deceleration, if required. Then, suspend system.
-    		if (rt_exec & EXEC_FEED_HOLD) {
-    			// Block SAFETY_DOOR, JOG, and SLEEP states from changing to HOLD state.
-    			if (!(sys.state & (STATE_SAFETY_DOOR | STATE_JOG | STATE_SLEEP))) { sys.state = STATE_HOLD; }
-    		}
+        // Execute a safety door stop with a feed hold and disable spindle/coolant.
+        // NOTE: Safety door differs from feed holds by stopping everything no matter state, disables powered
+        // devices (spindle/coolant), and blocks resuming until switch is re-engaged.
+        if (rt_exec & EXEC_SAFETY_DOOR) {
+          report_feedback_message(MESSAGE_SAFETY_DOOR_AJAR);
+          // If jogging, block safety door methods until jog cancel is complete. Just flag that it happened.
+          if (!(sys.suspend & SUSPEND_JOG_CANCEL)) {
+            // Check if the safety re-opened during a restore parking motion only. Ignore if
+            // already retracting, parked or in sleep state.
+            if (sys.state == STATE_SAFETY_DOOR) {
+              if (sys.suspend & SUSPEND_INITIATE_RESTORE) { // Actively restoring
+                #ifdef PARKING_ENABLE
+                  // Set hold and reset appropriate control flags to restart parking sequence.
+                  if (sys.step_control & STEP_CONTROL_EXECUTE_SYS_MOTION) {
+                    st_update_plan_block_parameters(); // Notify stepper module to recompute for hold deceleration.
+                    sys.step_control = (STEP_CONTROL_EXECUTE_HOLD | STEP_CONTROL_EXECUTE_SYS_MOTION);
+                    sys.suspend &= ~(SUSPEND_HOLD_COMPLETE);
+                  } // else NO_MOTION is active.
+                #endif
+                sys.suspend &= ~(SUSPEND_RETRACT_COMPLETE | SUSPEND_INITIATE_RESTORE | SUSPEND_RESTORE_COMPLETE);
+                sys.suspend |= SUSPEND_RESTART_RETRACT;
+              }
+            }
+            if (sys.state != STATE_SLEEP) { sys.state = STATE_SAFETY_DOOR; }
+          }
+          // NOTE: This flag doesn't change when the door closes, unlike sys.state. Ensures any parking motions
+          // are executed if the door switch closes and the state returns to HOLD.
+          sys.suspend |= SUSPEND_SAFETY_DOOR_AJAR;
+        }
+        
+      }
 
-    		// Execute a safety door stop with a feed hold and disable spindle/coolant.
-    		// NOTE: Safety door differs from feed holds by stopping everything no matter state, disables powered
-    		// devices (spindle/coolant), and blocks resuming until switch is re-engaged.
-    		if (rt_exec & EXEC_SAFETY_DOOR) {
-    			report_feedback_message(MESSAGE_SAFETY_DOOR_AJAR);
-    			// If jogging, block safety door methods until jog cancel is complete. Just flag that it happened.
-    			if (!(sys.suspend & SUSPEND_JOG_CANCEL)) {
-    				// Check if the safety re-opened during a restore parking motion only. Ignore if
-    				// already retracting, parked or in sleep state.
-    				if (sys.state == STATE_SAFETY_DOOR) {
-    					if (sys.suspend & SUSPEND_INITIATE_RESTORE) { // Actively restoring
-                	#ifdef PARKING_ENABLE
-    						// Set hold and reset appropriate control flags to restart parking sequence.
-    						if (sys.step_control & STEP_CONTROL_EXECUTE_SYS_MOTION) {
-    							st_update_plan_block_parameters(); // Notify stepper module to recompute for hold deceleration.
-    							sys.step_control = (STEP_CONTROL_EXECUTE_HOLD | STEP_CONTROL_EXECUTE_SYS_MOTION);
-    							sys.suspend &= ~(SUSPEND_HOLD_COMPLETE);
-    						} // else NO_MOTION is active.
-                	#endif
-    					sys.suspend &= ~(SUSPEND_RETRACT_COMPLETE | SUSPEND_INITIATE_RESTORE | SUSPEND_RESTORE_COMPLETE);
-    					sys.suspend |= SUSPEND_RESTART_RETRACT;
-    					}
-    				}
-    				if (sys.state != STATE_SLEEP) { sys.state = STATE_SAFETY_DOOR; }
-    			}
-    			// NOTE: This flag doesn't change when the door closes, unlike sys.state. Ensures any parking motions
-    			// are executed if the door switch closes and the state returns to HOLD.
-    			sys.suspend |= SUSPEND_SAFETY_DOOR_AJAR;
-    		}
-    	}
+      if (rt_exec & EXEC_SLEEP) {
+        if (sys.state == STATE_ALARM) { sys.suspend |= (SUSPEND_RETRACT_COMPLETE|SUSPEND_HOLD_COMPLETE); }
+        sys.state = STATE_SLEEP; 
+      }
 
-    	if (rt_exec & EXEC_SLEEP) {
-    		if (sys.state == STATE_ALARM) { sys.suspend |= (SUSPEND_RETRACT_COMPLETE|SUSPEND_HOLD_COMPLETE); }
-    		sys.state = STATE_SLEEP;
-    	}
-
-    	system_clear_exec_state_flag((EXEC_MOTION_CANCEL | EXEC_FEED_HOLD | EXEC_SAFETY_DOOR | EXEC_SLEEP));
+      system_clear_exec_state_flag((EXEC_MOTION_CANCEL | EXEC_FEED_HOLD | EXEC_SAFETY_DOOR | EXEC_SLEEP));
     }
 
     // Execute a cycle start by starting the stepper interrupt to begin executing the blocks in queue.
@@ -449,9 +421,6 @@ void protocol_exec_rt_system()
     if (rt_exec & EXEC_RAPID_OVR_MEDIUM) { new_r_override = RAPID_OVERRIDE_MEDIUM; }
     if (rt_exec & EXEC_RAPID_OVR_LOW) { new_r_override = RAPID_OVERRIDE_LOW; }
 
-    if (rt_exec & EXEC_FEED_OVR) { new_f_override = (uint8_t)_setup.parameters[PARAM_FEED_OVERRIDE];}
-    if (rt_exec & EXEC_RAPID_OVR) { new_r_override = (uint8_t)_setup.parameters[PARAM_RAPID_OVERRIDE];}
-
     if ((new_f_override != sys.f_override) || (new_r_override != sys.r_override)) {
       sys.f_override = new_f_override;
       sys.r_override = new_r_override;
@@ -472,13 +441,14 @@ void protocol_exec_rt_system()
     if (rt_exec & EXEC_SPINDLE_OVR_COARSE_MINUS) { last_s_override -= SPINDLE_OVERRIDE_COARSE_INCREMENT; }
     if (rt_exec & EXEC_SPINDLE_OVR_FINE_PLUS) { last_s_override += SPINDLE_OVERRIDE_FINE_INCREMENT; }
     if (rt_exec & EXEC_SPINDLE_OVR_FINE_MINUS) { last_s_override -= SPINDLE_OVERRIDE_FINE_INCREMENT; }
-    if (rt_exec & EXEC_SPINDLE_OVR) { last_s_override = (uint8_t)_setup.parameters[PARAM_SPINDLE_OVERRIDE];}
     last_s_override = min(last_s_override,MAX_SPINDLE_SPEED_OVERRIDE);
     last_s_override = max(last_s_override,MIN_SPINDLE_SPEED_OVERRIDE);
 
     if (last_s_override != sys.spindle_speed_ovr) {
-      bit_true(sys.step_control, STEP_CONTROL_UPDATE_SPINDLE_PWM);
       sys.spindle_speed_ovr = last_s_override;
+      // NOTE: Spindle speed overrides during HOLD state are taken care of by suspend function.
+      if (sys.state == STATE_IDLE) { spindle_set_state(gc_state.modal.spindle, gc_state.spindle_speed); }
+			else { bit_true(sys.step_control, STEP_CONTROL_UPDATE_SPINDLE_PWM); }
       sys.report_ovr_counter = 0; // Set to report change immediately
     }
 
@@ -493,6 +463,7 @@ void protocol_exec_rt_system()
 
     // NOTE: Since coolant state always performs a planner sync whenever it changes, the current
     // run state can be determined by checking the parser state.
+    // NOTE: Coolant overrides only operate during IDLE, CYCLE, HOLD, and JOG states. Ignored otherwise.
     if (rt_exec & (EXEC_COOLANT_FLOOD_OVR_TOGGLE | EXEC_COOLANT_MIST_OVR_TOGGLE)) {
       if ((sys.state == STATE_IDLE) || (sys.state & (STATE_CYCLE | STATE_HOLD | STATE_JOG))) {
         uint8_t coolant_state = gc_state.modal.coolant;
@@ -527,11 +498,6 @@ void protocol_exec_rt_system()
     st_prep_buffer();
   }
 
-  if (bit_istrue(settings.status_report_mask, BITFLAG_RT_STATUS_INPUTS)) {
-
-  }
-
-  sys.encoder_count = htim5.Instance->CNT;
 }
 
 
@@ -564,17 +530,17 @@ static void protocol_exec_rt_suspend()
       restore_condition = (gc_state.modal.spindle | gc_state.modal.coolant);
       restore_spindle_speed = gc_state.spindle_speed;
     } else {
-      restore_condition = block->condition;
+      restore_condition = (block->condition & PL_COND_SPINDLE_MASK) | coolant_get_state();
       restore_spindle_speed = block->spindle_speed;
     }
     #ifdef DISABLE_LASER_DURING_HOLD
-      if (bit_istrue(settings.flags, BITFLAG_LASER_MODE)) {
+      if (bit_istrue(settings.flags,BITFLAG_LASER_MODE)) { 
         system_set_exec_accessory_override_flag(EXEC_SPINDLE_OVR_STOP);
       }
     #endif
   #else
     if (block == NULL) { restore_condition = (gc_state.modal.spindle | gc_state.modal.coolant); }
-    else { restore_condition = block->condition; }
+    else { restore_condition = (block->condition & PL_COND_SPINDLE_MASK) | coolant_get_state(); }
   #endif
 
   while (sys.suspend) {
@@ -612,17 +578,17 @@ static void protocol_exec_rt_suspend()
             // Execute slow pull-out parking retract motion. Parking requires homing enabled, the
             // current location not exceeding the parking target location, and laser mode disabled.
             // NOTE: State is will remain DOOR, until the de-energizing and retract is complete.
-						#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-						if ((bit_istrue(settings.flags, BITFLAG_HOMING_ENABLE)) &&
-														(parking_target[PARKING_AXIS] < PARKING_TARGET) &&
-														bit_isfalse(settings.flags, BITFLAG_LASER_MODE) &&
-														(sys.override_ctrl == OVERRIDE_PARKING_MOTION)) {
-						#else
-						if ((bit_istrue(settings.flags, BITFLAG_HOMING_ENABLE)) &&
-														(parking_target[PARKING_AXIS] < PARKING_TARGET) &&
-														bit_isfalse(settings.flags, BITFLAG_LASER_MODE)) {
-						#endif
-							// Retract spindle by pullout distance. Ensure retraction motion moves away from
+            #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+            if ((bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE)) &&
+                            (parking_target[PARKING_AXIS] < PARKING_TARGET) &&
+                            bit_isfalse(settings.flags,BITFLAG_LASER_MODE) &&
+                            (sys.override_ctrl == OVERRIDE_PARKING_MOTION)) {
+            #else
+            if ((bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE)) &&
+                            (parking_target[PARKING_AXIS] < PARKING_TARGET) &&
+                            bit_isfalse(settings.flags,BITFLAG_LASER_MODE)) {
+            #endif
+              // Retract spindle by pullout distance. Ensure retraction motion moves away from
               // the workpiece and waypoint motion doesn't exceed the parking target location.
               if (parking_target[PARKING_AXIS] < retract_waypoint) {
                 parking_target[PARKING_AXIS] = retract_waypoint;
@@ -685,12 +651,12 @@ static void protocol_exec_rt_suspend()
             #ifdef PARKING_ENABLE
               // Execute fast restore motion to the pull-out position. Parking requires homing enabled.
               // NOTE: State is will remain DOOR, until the de-energizing and retract is complete.
-							#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-							if (((settings.flags & (BITFLAG_HOMING_ENABLE | BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) &&
-									 (sys.override_ctrl == OVERRIDE_PARKING_MOTION)) {
-							#else
-							if ((settings.flags & (BITFLAG_HOMING_ENABLE | BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) {
-							#endif
+              #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+              if (((settings.flags & (BITFLAG_HOMING_ENABLE|BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) &&
+                   (sys.override_ctrl == OVERRIDE_PARKING_MOTION)) {
+              #else
+              if ((settings.flags & (BITFLAG_HOMING_ENABLE|BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) {
+              #endif
                 // Check to ensure the motion doesn't move below pull-out position.
                 if (parking_target[PARKING_AXIS] <= PARKING_TARGET) {
                   parking_target[PARKING_AXIS] = retract_waypoint;
@@ -717,19 +683,19 @@ static void protocol_exec_rt_suspend()
               // Block if safety door re-opened during prior restore actions.
               if (bit_isfalse(sys.suspend,SUSPEND_RESTART_RETRACT)) {
                 // NOTE: Laser mode will honor this delay. An exhaust system is often controlled by this pin.
-                coolant_set_state((restore_condition & (PL_COND_FLAG_COOLANT_FLOOD | PL_COND_FLAG_COOLANT_FLOOD)));
+                coolant_set_state((restore_condition & (PL_COND_FLAG_COOLANT_FLOOD | PL_COND_FLAG_COOLANT_MIST)));
                 delay_sec(SAFETY_DOOR_COOLANT_DELAY, DELAY_MODE_SYS_SUSPEND);
               }
             }
 
             #ifdef PARKING_ENABLE
               // Execute slow plunge motion from pull-out position to resume position.
-						#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-						if (((settings.flags & (BITFLAG_HOMING_ENABLE | BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) &&
-									(sys.override_ctrl == OVERRIDE_PARKING_MOTION)) {
-							#else
-							if ((settings.flags & (BITFLAG_HOMING_ENABLE | BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) {
-							#endif
+              #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+              if (((settings.flags & (BITFLAG_HOMING_ENABLE|BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) &&
+                   (sys.override_ctrl == OVERRIDE_PARKING_MOTION)) {
+              #else
+              if ((settings.flags & (BITFLAG_HOMING_ENABLE|BITFLAG_LASER_MODE)) == BITFLAG_HOMING_ENABLE) {
+              #endif
                 // Block if safety door re-opened during prior restore actions.
                 if (bit_isfalse(sys.suspend,SUSPEND_RESTART_RETRACT)) {
                   // Regardless if the retract parking motion was a valid/safe motion or not, the

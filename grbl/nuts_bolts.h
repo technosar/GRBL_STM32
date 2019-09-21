@@ -21,21 +21,21 @@
 
 #ifndef nuts_bolts_h
 #define nuts_bolts_h
-#include "float.h"
+
+#define F_CPU SystemCoreClock
+#define F_TIM SystemCoreClock/2 // 108 MHz
+
 #define false 0
 #define true 1
 
-#define SOME_LARGE_VALUE FLT_MAX
+#define SOME_LARGE_VALUE 1.0E+38
 
 // Axis array index values. Must start with 0 and be continuous.
-
-#define N_AXIS 6
-
+#define N_AXIS 3 // Number of axes
 #define X_AXIS 0 // Axis indexing value.
 #define Y_AXIS 1
 #define Z_AXIS 2
 #define A_AXIS 3
-
 
 // CoreXY motor assignments. DO NOT ALTER.
 // NOTE: If the A and B motor axis bindings are changed, this effects the CoreXY equations.
@@ -47,11 +47,7 @@
 // Conversions
 #define MM_PER_INCH (25.40f)
 #define INCH_PER_MM (0.0393701f)
-
-#define F_CPU SystemCoreClock
-#define F_TIM SystemCoreClock/2 // 108 MHz
-
-#define TICKS_PER_MICROSECOND (F_TIM/1000000) // 108
+#define TICKS_PER_MICROSECOND (F_TIM/1000000)
 
 #define DELAY_MODE_DWELL       0
 #define DELAY_MODE_SYS_SUSPEND 1
@@ -68,17 +64,24 @@
 #define bit(n) (1 << n)
 #define bit_true(x,mask) (x) |= (mask)
 #define bit_false(x,mask) (x) &= ~(mask)
-#define bit_istrue(x,mask)  ((x & mask) != 0)
+#define bit_istrue(x,mask) ((x & mask) != 0)
 #define bit_isfalse(x,mask) ((x & mask) == 0)
 
 // Read a floating point value from a string. Line points to the input buffer, char_counter
 // is the indexer pointing to the current character of the line, while float_ptr is
 // a pointer to the result variable. Returns true when it succeeds
-uint8_t read_float(char *line, int *char_counter, float *float_ptr);
+uint8_t read_float(char *line, uint32_t *char_counter, float *float_ptr);
 
 // Non-blocking delay function used for general operation and suspend features.
 void delay_sec(float seconds, uint8_t mode);
-void delay_ms(uint32_t time);
+
+// Delays variable-defined milliseconds. Compiler compatibility fix for _delay_ms().
+void delay_ms(uint32_t ms);
+
+// Delays variable-defined microseconds. Compiler compatibility fix for _delay_us().
+void delay_us(uint32_t us);
+
+void delay(uint32_t time, uint32_t load);
 
 // Computes hypotenuse, avoiding avr-gcc's bloated version and the extra error checking.
 float hypot_f(float x, float y);

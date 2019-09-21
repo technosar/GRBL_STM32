@@ -33,7 +33,7 @@ void limits_disable();
 uint8_t limits_get_state();
 
 // Perform one portion of the homing cycle based on the input settings.
-void limits_go_home(unsigned char cycle_mask);
+void limits_go_home(uint8_t cycle_mask);
 
 // Check for soft limit violations
 void limits_soft_check(float *target);

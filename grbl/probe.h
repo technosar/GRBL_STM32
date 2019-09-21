@@ -34,7 +34,7 @@ void probe_init();
 void probe_configure_invert_mask(uint8_t is_probe_away);
 
 // Returns probe pin state. Triggered = true. Called by gcode parser and probe state monitor.
-uint16_t probe_get_state();
+uint8_t probe_get_state();
 
 // Monitors probe pin state and records the system position when detected. Called by the
 // stepper ISR per ISR tick.

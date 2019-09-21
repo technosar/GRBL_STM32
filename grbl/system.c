@@ -21,9 +21,10 @@
 #include "grbl.h"
 #include "gpio.h"
 
+
 void system_init()
 {
-	sys.abort = 0;
+
 }
 
 
@@ -35,16 +36,16 @@ uint8_t system_control_get_state()
   uint8_t control_state = 0;
   uint16_t pin = GPIO_ReadPort(CONTROL_PIN_PORT) & CONTROL_MASK;
 
-  #ifdef INVERT_CONTROL_PIN_MASK
-    pin ^= INVERT_CONTROL_PIN_MASK;
-  #endif
+#ifdef INVERT_CONTROL_PIN_MASK
+  pin ^= INVERT_CONTROL_PIN_MASK;
+#endif
   if (pin) {
-    #ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
-      if (bit_isfalse(pin,(1<<CONTROL_SAFETY_DOOR_BIT))) { control_state |= CONTROL_PIN_INDEX_SAFETY_DOOR; }
-    #endif
-    if (bit_isfalse(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
-    if (bit_isfalse(pin,(1<<CONTROL_FEED_HOLD_BIT))) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
-    if (bit_isfalse(pin,(1<<CONTROL_CYCLE_START_BIT))) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
+#ifdef ENABLE_SAFETY_DOOR_INPUT_PIN
+	  if (bit_isfalse(pin,(1<<CONTROL_SAFETY_DOOR_BIT))) { control_state |= CONTROL_PIN_INDEX_SAFETY_DOOR;}
+#endif
+	  if (bit_isfalse(pin,(1<<CONTROL_RESET_BIT))) { control_state |= CONTROL_PIN_INDEX_RESET; }
+	  if (bit_isfalse(pin,(1<<CONTROL_FEED_HOLD_BIT))) { control_state |= CONTROL_PIN_INDEX_FEED_HOLD; }
+	  if (bit_isfalse(pin,(1<<CONTROL_CYCLE_START_BIT))) { control_state |= CONTROL_PIN_INDEX_CYCLE_START; }
   }
   return(control_state);
 }
@@ -54,34 +55,32 @@ uint8_t system_control_get_state()
 // only the realtime command execute variable to have the main program execute these when
 // its ready. This works exactly like the character-based realtime commands when picked off
 // directly from the incoming serial data stream.
-void EXTI9_5_IRQHandler(void)
+void _EXTI15_10_IRQHandler(void)
 {
 //@   EXTI_ClearITPendingBit((1 << CONTROL_RESET_BIT) | (1 << CONTROL_FEED_HOLD_BIT) | (1 << CONTROL_CYCLE_START_BIT) | (1 << CONTROL_SAFETY_DOOR_BIT));
-	uint8_t pin = system_control_get_state();
-	if (pin) 
-	{ 
-		if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET)) 
-		{
-			mc_reset();
-		}
-		else if (bit_istrue(pin, CONTROL_PIN_INDEX_CYCLE_START))
-		{
-			bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
-		}
-#ifndef ENABLE_SAFETY_DOOR_INPUT_PIN
-		else if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
-		{
-			bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
-		}
-#else
-		else if (bit_istrue(pin, CONTROL_PIN_INDEX_SAFETY_DOOR))
-		{
-			bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
-		}
-#endif
-		NVIC_ClearPendingIRQ(EXTI9_5_IRQn);
+  uint8_t pin = system_control_get_state();
+  if (pin)
+  {
+	  if (bit_istrue(pin,CONTROL_PIN_INDEX_RESET))
+	  {
+		  mc_reset();
+	  }
+	  else if (bit_istrue(pin, CONTROL_PIN_INDEX_CYCLE_START))
+	  {
+		  bit_true(sys_rt_exec_state, EXEC_CYCLE_START);
+	  }
+	  else if (bit_istrue(pin, CONTROL_PIN_INDEX_FEED_HOLD))
+	  {
+		  bit_true(sys_rt_exec_state, EXEC_FEED_HOLD);
+	  }
+	  else if (bit_istrue(pin, CONTROL_PIN_INDEX_SAFETY_DOOR))
+	  {
+		  bit_true(sys_rt_exec_state, EXEC_SAFETY_DOOR);
+	  }
+	  NVIC_ClearPendingIRQ(EXTI15_10_IRQn);
 }
 }
+
 
 // Returns if safety door is ajar(T) or closed(F), based on pin state.
 uint8_t system_check_safety_door_ajar()
@@ -122,8 +121,8 @@ void system_execute_startup(char *line)
 // be an issue, since these commands are not typically used during a cycle.
 uint8_t system_execute_line(char *line)
 {
-  int char_counter = 1;
-  int helper_var = 0; // Helper variable
+  uint8_t char_counter = 1;
+  uint8_t helper_var = 0; // Helper variable
   float parameter, value;
   switch( line[char_counter] ) {
     case 0 : report_grbl_help(); break;
@@ -188,7 +187,6 @@ uint8_t system_execute_line(char *line)
                 case 'X': mc_homing_cycle(HOMING_CYCLE_X); break;
                 case 'Y': mc_homing_cycle(HOMING_CYCLE_Y); break;
                 case 'Z': mc_homing_cycle(HOMING_CYCLE_Z); break;
-                case 'C': mc_homing_cycle(HOMING_CYCLE_C); break;
                 default: return(STATUS_INVALID_STATEMENT);
               }
           #endif
@@ -251,20 +249,8 @@ uint8_t system_execute_line(char *line)
             // No break. Continues into default: to read remaining command characters.
           }
         default :  // Storing setting methods [IDLE/ALARM]
-
-          if(!read_float(line, &char_counter, &parameter)) { return(STATUS_BAD_NUMBER_FORMAT); }
-
-          if(line[char_counter] == 'H') {
-        	  settings_print_help((uint32_t)parameter);
-              return(STATUS_OK);
-          }
-          if(line[char_counter] != '=') {
-        	  settings_print_global_setting((uint32_t)parameter);
-        	  return(STATUS_OK);
-      	  }
-
-          char_counter++;
-
+          if(!read_float(line, (uint32_t *)&char_counter, &parameter)) { return(STATUS_BAD_NUMBER_FORMAT); }
+          if(line[char_counter++] != '=') { return(STATUS_INVALID_STATEMENT); }
           if (helper_var) { // Store startup line
             // Prepare sending gcode block to gcode parser by shifting all characters
             helper_var = char_counter; // Set helper variable as counter to start of gcode block
@@ -275,13 +261,13 @@ uint8_t system_execute_line(char *line)
             helper_var = gc_execute_line(line); // Set helper_var to returned status code.
             if (helper_var) { return(helper_var); }
             else {
-              helper_var = truncf(parameter); // Set helper_var to int value of parameter
+              helper_var = trunc(parameter); // Set helper_var to int value of parameter
               settings_store_startup_line(helper_var,line);
             }
           } else { // Store global setting.
-            if(!read_float(line, &char_counter, &value)) { return(STATUS_BAD_NUMBER_FORMAT); }
-            if((line[char_counter] != 0) || (parameter > (float)MAX_PARAM_SETTINGS)) { return(STATUS_INVALID_STATEMENT); }
-            return(settings_store_global_setting((uint32_t)parameter, value));
+            if(!read_float(line, (uint32_t *)&char_counter, &value)) { return(STATUS_BAD_NUMBER_FORMAT); }
+            if((line[char_counter] != 0) || (parameter > 255)) { return(STATUS_INVALID_STATEMENT); }
+            return(settings_store_global_setting((uint8_t)parameter, value));
           }
       }
   }
@@ -369,7 +355,7 @@ uint8_t system_check_travel_limits(float *target)
 void system_set_exec_state_flag(uint8_t mask) {
   __disable_irq();
   sys_rt_exec_state |= (mask);
-  __enable_irq();
+   __enable_irq();
 }
 
 void system_clear_exec_state_flag(uint8_t mask) {
@@ -390,13 +376,13 @@ void system_clear_exec_alarm() {
   __enable_irq();
 }
 
-void system_set_exec_motion_override_flag(uint32_t mask) {
+void system_set_exec_motion_override_flag(uint8_t mask) {
   __disable_irq();
   sys_rt_exec_motion_override |= (mask);
   __enable_irq();
 }
 
-void system_set_exec_accessory_override_flag(uint32_t mask) {
+void system_set_exec_accessory_override_flag(uint8_t mask) {
   __disable_irq();
   sys_rt_exec_accessory_override |= (mask);
   __enable_irq();

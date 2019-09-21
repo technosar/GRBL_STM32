@@ -33,20 +33,13 @@ void mc_line(float *target, plan_line_data_t *pl_data)
 {
   // If enabled, check for soft limit violations. Placed here all line motions are picked up
   // from everywhere in Grbl.
-  if (bit_istrue(settings.flags,BITFLAG_SOFT_LIMIT_ENABLE))
-  {
+  if (bit_istrue(settings.flags,BITFLAG_SOFT_LIMIT_ENABLE)) {
     // NOTE: Block jog state. Jogging is a special case and soft limits are handled independently.
-    if (sys.state != STATE_JOG)
-    {
-    	limits_soft_check(target);
-    }
+    if (sys.state != STATE_JOG) { limits_soft_check(target); }
   }
 
   // If in check gcode mode, prevent motion by blocking planner. Soft limits still work.
-  if (sys.state == STATE_CHECK_MODE)
-  {
-	  return;
-  }
+  if (sys.state == STATE_CHECK_MODE) { return; }
 
   // NOTE: Backlash compensation may be installed here. It will need direction info to track when
   // to insert a backlash line motion(s) before the intended line motion and will require its own
@@ -66,33 +59,21 @@ void mc_line(float *target, plan_line_data_t *pl_data)
   // Remain in this loop until there is room in the buffer.
   do {
     protocol_execute_realtime(); // Check for any run-time commands
-    if (sys.abort)
-    {
-    	return;
-    } // Bail, if system abort.
-    if ( plan_check_full_buffer() )
-    {
-    	protocol_auto_cycle_start();
-    } // Auto-cycle start when buffer is full.
-    else
-    {
-    	break;
-    }
+    if (sys.abort) { return; } // Bail, if system abort.
+    if ( plan_check_full_buffer() ) { protocol_auto_cycle_start(); } // Auto-cycle start when buffer is full.
+    else { break; }
   } while (1);
 
   // Plan and queue motion into planner buffer
-	if (plan_buffer_line(target, pl_data) == PLAN_EMPTY_BLOCK)
-	{
-		if (bit_istrue(settings.flags, BITFLAG_LASER_MODE))
-		{
-			// Correctly set spindle state, if there is a coincident position passed. Forces a buffer
-			// sync while in M3 laser mode only.
-			if (pl_data->condition & PL_COND_FLAG_SPINDLE_CW)
-			{
-				spindle_sync(PL_COND_FLAG_SPINDLE_CW, pl_data->spindle_speed);
-			}
-		}
-	}
+  if (plan_buffer_line(target, pl_data) == PLAN_EMPTY_BLOCK) {
+    if (bit_istrue(settings.flags,BITFLAG_LASER_MODE)) {
+      // Correctly set spindle state, if there is a coincident position passed. Forces a buffer
+      // sync while in M3 laser mode only.
+      if (pl_data->condition & PL_COND_FLAG_SPINDLE_CW) {
+        spindle_sync(PL_COND_FLAG_SPINDLE_CW, pl_data->spindle_speed);
+      }
+    }
+  }
 }
 
 
@@ -218,13 +199,6 @@ void mc_dwell(float seconds)
   delay_sec(seconds, DELAY_MODE_DWELL);
 }
 
-// wait end of motion
-void mc_wait_end_of_motion()
-{
-	if (sys.state == STATE_CHECK_MODE) { return; }
-	protocol_buffer_synchronize();
-}
-
 
 // Perform homing cycle to locate and set machine zero. Only '$H' executes this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
@@ -347,30 +321,29 @@ uint8_t mc_probe_cycle(float *target, plan_line_data_t *pl_data, uint8_t parser_
 // Plans and executes the single special motion case for parking. Independent of main planner buffer.
 // NOTE: Uses the always free planner ring buffer head to store motion parameters for execution.
 #ifdef PARKING_ENABLE
-	void mc_parking_motion(float *parking_target, plan_line_data_t *pl_data)
-	{
-		if (sys.abort) { return; } // Block during abort.
+  void mc_parking_motion(float *parking_target, plan_line_data_t *pl_data)
+  {
+    if (sys.abort) { return; } // Block during abort.
 
-		uint8_t plan_status = plan_buffer_line(parking_target, pl_data);
+    uint8_t plan_status = plan_buffer_line(parking_target, pl_data);
 
-		if (plan_status) {
-			bit_true(sys.step_control, STEP_CONTROL_EXECUTE_SYS_MOTION);
-			bit_false(sys.step_control, STEP_CONTROL_END_MOTION); // Allow parking motion to execute, if feed hold is active.
-			st_parking_setup_buffer(); // Setup step segment buffer for special parking motion case
-			st_prep_buffer();
-			st_wake_up();
-			do {
-				protocol_exec_rt_system();
-				if (sys.abort) { return; }
-			} while (sys.step_control & STEP_CONTROL_EXECUTE_SYS_MOTION);
-			st_parking_restore_buffer(); // Restore step segment buffer to normal run state.
-		}
-		else {
-			bit_false(sys.step_control, STEP_CONTROL_EXECUTE_SYS_MOTION);
-			protocol_exec_rt_system();
-		}
+    if (plan_status) {
+      bit_true(sys.step_control, STEP_CONTROL_EXECUTE_SYS_MOTION);
+      bit_false(sys.step_control, STEP_CONTROL_END_MOTION); // Allow parking motion to execute, if feed hold is active.
+      st_parking_setup_buffer(); // Setup step segment buffer for special parking motion case
+      st_prep_buffer();
+      st_wake_up();
+      do {
+        protocol_exec_rt_system();
+        if (sys.abort) { return; }
+      } while (sys.step_control & STEP_CONTROL_EXECUTE_SYS_MOTION);
+      st_parking_restore_buffer(); // Restore step segment buffer to normal run state.
+    } else {
+      bit_false(sys.step_control, STEP_CONTROL_EXECUTE_SYS_MOTION);
+      protocol_exec_rt_system();
+    }
 
-	}
+  }
 #endif
 
 
@@ -383,6 +356,8 @@ uint8_t mc_probe_cycle(float *target, plan_line_data_t *pl_data, uint8_t parser_
     sys.override_ctrl = override_state;
   }
 #endif
+
+
 // Method to ready the system to reset by setting the realtime reset command and killing any
 // active processes in the system. This also checks if a system reset is issued while Grbl
 // is in a motion state. If so, kills the steppers and sets the system alarm to flag position
@@ -390,7 +365,6 @@ uint8_t mc_probe_cycle(float *target, plan_line_data_t *pl_data, uint8_t parser_
 // realtime abort command and hard limits. So, keep to a minimum.
 void mc_reset()
 {
-
   // Only this function can set the system reset. Helps prevent multiple kill calls.
   if (bit_isfalse(sys_rt_exec_state, EXEC_RESET)) {
     system_set_exec_state_flag(EXEC_RESET);
@@ -405,10 +379,9 @@ void mc_reset()
     // violated, by which, all bets are off.
     if ((sys.state & (STATE_CYCLE | STATE_HOMING | STATE_JOG)) ||
     		(sys.step_control & (STEP_CONTROL_EXECUTE_HOLD | STEP_CONTROL_EXECUTE_SYS_MOTION))) {
-      if (sys.state == STATE_HOMING) {
-        if (!sys_rt_exec_alarm) { system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_RESET); }
-      }
-      else { system_set_exec_alarm(EXEC_ALARM_ABORT_CYCLE); }
+      if (sys.state == STATE_HOMING) { 
+        if (!sys_rt_exec_alarm) {system_set_exec_alarm(EXEC_ALARM_HOMING_FAIL_RESET); }
+      } else { system_set_exec_alarm(EXEC_ALARM_ABORT_CYCLE); }
       st_go_idle(); // Force kill steppers. Position has likely been lost.
     }
   }

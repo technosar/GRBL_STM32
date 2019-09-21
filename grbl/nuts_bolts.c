@@ -18,16 +18,13 @@
   You should have received a copy of the GNU General Public License
   along with Grbl.  If not, see <http://www.gnu.org/licenses/>.
 */
-#include <ctype.h>
+
 #include "grbl.h"
-#include "param.h"
 
 
 #define MAX_INT_DIGITS 8 // Maximum number of digits in int32 (and float)
 
-extern setup _setup;
-
-uint32_t timestamp = 0;
+volatile uint32_t timestamp = 0;
 volatile uint32_t tick = 0;
 
 // Extracts a floating point value from a string. The following code is based loosely on
@@ -37,9 +34,78 @@ volatile uint32_t tick = 0;
 // Scientific notation is officially not supported by g-code, and the 'E' character may
 // be a g-code word on some CNC systems. So, 'E' notation will not be recognized.
 // NOTE: Thanks to Radu-Eosif Mihailescu for identifying the issues with using strtod().
-uint8_t read_float(char *line, int *char_counter, float *float_ptr)
+uint8_t read_float(char *line, uint32_t *char_counter, float *float_ptr)
 {
-  read_real_value(line, char_counter, float_ptr, _setup.parameters);
+  char *ptr = line + *char_counter;
+  unsigned char c;
+
+  // Grab first character and increment pointer. No spaces assumed in line.
+  c = *ptr++;
+
+  // Capture initial positive/minus character
+  bool isnegative = false;
+  if (c == '-') {
+    isnegative = true;
+    c = *ptr++;
+  } else if (c == '+') {
+    c = *ptr++;
+  }
+
+  // Extract number into fast integer. Track decimal in terms of exponent value.
+  uint32_t intval = 0;
+  int8_t exp = 0;
+  uint8_t ndigit = 0;
+  bool isdecimal = false;
+  while(1) {
+    c -= '0';
+    if (c <= 9) {
+      ndigit++;
+      if (ndigit <= MAX_INT_DIGITS) {
+        if (isdecimal) { exp--; }
+        intval = (((intval << 2) + intval) << 1) + c; // intval*10 + c
+      } else {
+        if (!(isdecimal)) { exp++; }  // Drop overflow digits
+      }
+    } else if (c == (('.'-'0') & 0xff)  &&  !(isdecimal)) {
+      isdecimal = true;
+    } else {
+      break;
+    }
+    c = *ptr++;
+  }
+
+  // Return if no digits have been read.
+  if (!ndigit) { return(false); };
+
+  // Convert integer into floating point.
+  float fval;
+  fval = (float)intval;
+
+  // Apply decimal. Should perform no more than two floating point multiplications for the
+  // expected range of E0 to E-4.
+  if (fval != 0) {
+    while (exp <= -2) {
+      fval *= 0.01;
+      exp += 2;
+    }
+    if (exp < 0) {
+      fval *= 0.1;
+    } else if (exp > 0) {
+      do {
+        fval *= 10.0;
+      } while (--exp > 0);
+    }
+  }
+
+  // Assign floating point value with correct sign.
+  if (isnegative) {
+    *float_ptr = -fval;
+  } else {
+    *float_ptr = fval;
+  }
+
+  *char_counter = ptr - line - 1; // Set char_counter to next statement
+
   return(true);
 }
 
@@ -48,30 +114,32 @@ uint8_t read_float(char *line, int *char_counter, float *float_ptr)
 void delay_sec(float seconds, uint8_t mode)
 {
 	uint32_t i = (uint32_t)seconds;
-	uint32_t tickcount = timestamp;
+	tick = timestamp;
 
-	while ((timestamp - tickcount)< i) {
+	while ((timestamp - tick)< i) {
 		if (sys.abort) { return; }
 		if (mode == DELAY_MODE_DWELL) {
 			protocol_execute_realtime();
 		} else { // DELAY_MODE_SYS_SUSPEND
-		  // Execute rt_system() only to avoid nesting suspend loops.
-		  protocol_exec_rt_system();
-		  if (sys.suspend & SUSPEND_RESTART_RETRACT) { return; } // Bail, if safety door reopens.
+			// Execute rt_system() only to avoid nesting suspend loops.
+			protocol_exec_rt_system();
+			if (sys.suspend & SUSPEND_RESTART_RETRACT) { return; } // Bail, if safety door reopens.
 		}
-//@		_delay_ms(DWELL_TIME_STEP); // Delay DWELL_TIME_STEP increment
 	}
 }
 
-inline void delay(uint32_t time, uint32_t load) {
-    tick = timestamp;
-    while ((timestamp - tick) < time);
+void delay(uint32_t time, uint32_t load)
+{
+	tick = timestamp;
+	while ((timestamp - tick) < time);
 }
 
-inline void delay_ms(uint32_t time) {
-    delay(time, 0);
+// Delays variable defined milliseconds. Compiler compatibility fix for _delay_ms(),
+// which only accepts constants in future compiler releases.
+void delay_ms(uint32_t ms)
+{
+	delay(ms, 0);
 }
-
 
 // Simple hypotenuse computation function.
 float hypot_f(float x, float y)
@@ -113,3 +181,4 @@ float limit_value_by_axis_maximum(float *max_value, float *unit_vec)
   }
   return(limit_value);
 }
+

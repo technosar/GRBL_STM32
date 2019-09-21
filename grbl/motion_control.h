@@ -31,7 +31,6 @@
 #define HOMING_CYCLE_X    bit(X_AXIS)
 #define HOMING_CYCLE_Y    bit(Y_AXIS)
 #define HOMING_CYCLE_Z    bit(Z_AXIS)
-#define HOMING_CYCLE_A    bit(A_AXIS)
 
 
 // Execute linear motion in absolute millimeter coordinates. Feed rate given in millimeters/second
@@ -48,9 +47,6 @@ void mc_arc(float *target, plan_line_data_t *pl_data, float *position, float *of
 
 // Dwell for a specific number of seconds
 void mc_dwell(float seconds);
-
-// Wait en fo motion
-void mc_wait_end_of_motion();
 
 // Perform homing cycle to locate machine zero. Requires limit switches.
 void mc_homing_cycle(uint8_t cycle_mask);

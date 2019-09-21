@@ -22,6 +22,7 @@ volatile uint8_t sys_rt_exec_debug;
 void grbl_init(void)
 {
 	settings_init(); // Load Grbl settings from EEPROM
+	stepper_init();  // Configure stepper pins and interrupt timers
 	system_init();   // Configure pinout pins and pin-change interrupt
 
 	memset(sys_position,0,sizeof(sys_position)); // Clear machine position.
@@ -73,7 +74,6 @@ void grbl_init(void)
 	    coolant_init();
 	    limits_init();
 	    probe_init();
-	    encoder_init();
 	    plan_reset(); // Clear block buffer and planner variables
 	    st_reset(); // Clear stepper subsystem variables.
 

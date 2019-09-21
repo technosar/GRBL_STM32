@@ -331,16 +331,15 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
   uint8_t idx;
 
   // Copy position data based on type of motion being planned.
-  if (block->condition & PL_COND_FLAG_SYSTEM_MOTION) {
-#ifdef COREXY
-    position_steps[X_AXIS] = system_convert_corexy_to_x_axis_steps(sys_position);
-    position_steps[Y_AXIS] = system_convert_corexy_to_y_axis_steps(sys_position);
-    position_steps[Z_AXIS] = sys_position[Z_AXIS];
-#else
-    memcpy(position_steps, sys_position, sizeof(sys_position));
-#endif
-  }
-  else { memcpy(position_steps, pl.position, sizeof(pl.position)); }
+  if (block->condition & PL_COND_FLAG_SYSTEM_MOTION) { 
+    #ifdef COREXY
+      position_steps[X_AXIS] = system_convert_corexy_to_x_axis_steps(sys_position);
+      position_steps[Y_AXIS] = system_convert_corexy_to_y_axis_steps(sys_position);
+      position_steps[Z_AXIS] = sys_position[Z_AXIS];
+    #else
+      memcpy(position_steps, sys_position, sizeof(sys_position)); 
+    #endif
+  } else { memcpy(position_steps, pl.position, sizeof(pl.position)); }
 
   #ifdef COREXY
     target_steps[A_MOTOR] = lround(target[A_MOTOR]*settings.steps_per_mm[A_MOTOR]);
@@ -355,8 +354,8 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
     // NOTE: Computes true distance from converted step values.
     #ifdef COREXY
       if ( !(idx == A_MOTOR) && !(idx == B_MOTOR) ) {
-        target_steps[idx] = lroundf(target[idx]*settings.steps_per_mm[idx]);
-        block->steps[idx] = fabsf(target_steps[idx]-position_steps[idx]);
+        target_steps[idx] = lround(target[idx]*settings.steps_per_mm[idx]);
+        block->steps[idx] = labs(target_steps[idx]-position_steps[idx]);
       }
       block->step_event_count = max(block->step_event_count, block->steps[idx]);
       if (idx == A_MOTOR) {
@@ -375,17 +374,11 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
     unit_vec[idx] = delta_mm; // Store unit vector numerator
 
     // Set direction bits. Bit enabled always means direction is negative.
-    if (delta_mm < 0.0f )
-    {
-    	block->direction_bits |= direction_pin_mask[idx];
-    }
+    if (delta_mm < 0.0f ) { block->direction_bits |= get_direction_pin_mask(idx); }
   }
 
   // Bail if this is a zero-length block. Highly unlikely to occur.
-  if (block->step_event_count == 0)
-  {
-	  return(PLAN_EMPTY_BLOCK);
-  }
+  if (block->step_event_count == 0) { return(PLAN_EMPTY_BLOCK); }
 
   // Calculate the unit vector of the line move and the block maximum feed rate and acceleration scaled
   // down such that no individual axes maximum values are exceeded with respect to the line direction.
@@ -440,25 +433,22 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
       junction_unit_vec[idx] = unit_vec[idx]-pl.previous_unit_vec[idx];
     }
 
-    if ( pl_data->control == EXACT_STOP) {
-    	block->max_junction_speed_sqr = 0.0f;
-    }
     // NOTE: Computed without any expensive trig, sin() or acos(), by trig half angle identity of cos(theta).
-    else if (junction_cos_theta > 0.999999f) {
-    	//  For a 0 degree acute junction, just set minimum junction speed.
-    	block->max_junction_speed_sqr = MINIMUM_JUNCTION_SPEED*MINIMUM_JUNCTION_SPEED;
-    	} else {
-    		if (junction_cos_theta < -0.999999f) {
-    			// Junction is a straight line or 180 degrees. Junction speed is infinite.
-    			block->max_junction_speed_sqr = SOME_LARGE_VALUE;
-    		} else {
-    			convert_delta_vector_to_unit_vector(junction_unit_vec);
-    			float junction_acceleration = limit_value_by_axis_maximum(settings.acceleration, junction_unit_vec);
-    			float sin_theta_d2 = sqrtf(0.5f*(1.0f-junction_cos_theta)); // Trig half angle identity. Always positive.
-    			block->max_junction_speed_sqr = max( MINIMUM_JUNCTION_SPEED*MINIMUM_JUNCTION_SPEED,
-    					(junction_acceleration * settings.junction_deviation * sin_theta_d2)/(1.0f-sin_theta_d2) );
-    		}
-    	}
+    if (junction_cos_theta > 0.999999f) {
+      //  For a 0 degree acute junction, just set minimum junction speed.
+      block->max_junction_speed_sqr = MINIMUM_JUNCTION_SPEED*MINIMUM_JUNCTION_SPEED;
+    } else {
+      if (junction_cos_theta < -0.999999f) {
+        // Junction is a straight line or 180 degrees. Junction speed is infinite.
+        block->max_junction_speed_sqr = SOME_LARGE_VALUE;
+      } else {
+        convert_delta_vector_to_unit_vector(junction_unit_vec);
+        float junction_acceleration = limit_value_by_axis_maximum(settings.acceleration, junction_unit_vec);
+        float sin_theta_d2 = sqrtf(0.5f*(1.0f-junction_cos_theta)); // Trig half angle identity. Always positive.
+        block->max_junction_speed_sqr = max( MINIMUM_JUNCTION_SPEED*MINIMUM_JUNCTION_SPEED,
+                       (junction_acceleration * settings.junction_deviation * sin_theta_d2)/(1.0f-sin_theta_d2) );
+      }
+    }
   }
 
   // Block system motion from updating this data to ensure next g-code motion is computed correctly.
@@ -466,7 +456,7 @@ uint8_t plan_buffer_line(float *target, plan_line_data_t *pl_data)
     float nominal_speed = plan_compute_profile_nominal_speed(block);
     plan_compute_profile_parameters(block, nominal_speed, pl.previous_nominal_speed);
     pl.previous_nominal_speed = nominal_speed;
-
+    
     // Update previous path unit_vector and planner position.
     memcpy(pl.previous_unit_vec, unit_vec, sizeof(unit_vec)); // pl.previous_unit_vec[] = unit_vec[]
     memcpy(pl.position, target_steps, sizeof(target_steps)); // pl.position[] = target_steps[]

@@ -109,7 +109,7 @@ uint8_t gc_execute_line(char *line)
   uint32_t char_counter;
   char letter;
   float value;
-  uint32_t int_value = 0;
+  int int_value = 0;
   uint16_t mantissa = 0;
   if (gc_parser_flags & GC_PARSER_JOG_MOTION) { char_counter = 3; } // Start parsing after `$J=`
   else { char_counter = 0; }
@@ -120,8 +120,6 @@ uint8_t gc_execute_line(char *line)
     letter = line[char_counter];
     if((letter < 'A') || (letter > 'Z')) { FAIL(STATUS_EXPECTED_COMMAND_LETTER); } // [Expected word letter]
     char_counter++;
-
-    //@ TODO changer le code de retour et interpreter les erreurs
     if (!read_float(line, &char_counter, &value)) { FAIL(STATUS_BAD_NUMBER_FORMAT); } // [Expected word value]
 
     // Convert values to smaller uint8 significand and mantissa values for parsing this word.
@@ -131,8 +129,8 @@ uint8_t gc_execute_line(char *line)
     // a good enough comprimise and catch most all non-integer errors. To make it compliant,
     // we would simply need to change the mantissa to int16, but this add compiled flash space.
     // Maybe update this later.
-    int_value = (uint32_t)truncf(value);
-	mantissa = (uint16_t)lroundf(100 * (value - (float)int_value)); // Compute mantissa for Gxx.x commands.
+    int_value = (int)truncf(value);
+    mantissa = (uint16_t)lroundf(100 * (value - (float)int_value)); // Compute mantissa for Gxx.x commands.
     // NOTE: Rounding must be used to catch small floating point errors.
 
     // Check if the g-code word is supported or errors due to modal group violations or has
@@ -170,22 +168,13 @@ uint8_t gc_execute_line(char *line)
             // No break. Continues to next line.
           case 80:
             word_bit = MODAL_GROUP_G1;
-            switch(int_value) {
-            	case 0: gc_block.modal.motion = MOTION_MODE_SEEK; break; // G0
-            	case 1: gc_block.modal.motion = MOTION_MODE_LINEAR; break; // G1
-            	case 2: gc_block.modal.motion = MOTION_MODE_CW_ARC; break; // G2
-            	case 3: gc_block.modal.motion = MOTION_MODE_CCW_ARC; break; // G3
-            	case 38:
-                	switch(mantissa) {
-                    	case 20: gc_block.modal.motion = MOTION_MODE_PROBE_TOWARD; break; // G38.2
-                    	case 30: gc_block.modal.motion = MOTION_MODE_PROBE_TOWARD_NO_ERROR; break; // G38.3
-                    	case 40: gc_block.modal.motion = MOTION_MODE_PROBE_AWAY; break; // G38.4
-                    	case 50: gc_block.modal.motion = MOTION_MODE_PROBE_AWAY_NO_ERROR; break; // G38.5
-                    	default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported G38.x command]
-                    }
-                mantissa = 0; // Set to zero to indicate valid non-integer G command.
-                break;
-                case 80: gc_block.modal.motion = MOTION_MODE_NONE; break; // G80
+            gc_block.modal.motion = int_value;
+            if (int_value == 38){
+              if (!((mantissa == 20) || (mantissa == 30) || (mantissa == 40) || (mantissa == 50))) {
+                FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported G38.x command]
+              }
+              gc_block.modal.motion += (mantissa/10)+100;
+              mantissa = 0; // Set to zero to indicate valid non-integer G command.
             }  
             break;
           case 17: case 18: case 19:
@@ -238,15 +227,8 @@ uint8_t gc_execute_line(char *line)
             break;
           case 61:
             word_bit = MODAL_GROUP_G13;
-            if (mantissa == 10) {
-            	gc_block.modal.control = EXACT_STOP; // G61.1
-            	mantissa = 0; // Set to zero to indicate valid non-integer G command.
-            }
-            else gc_block.modal.control = EXACT_PATH; // G61
-            break;
-          case 64:
-            word_bit = MODAL_GROUP_G13;
-            gc_block.modal.control = CONTINUOUS_PATH; // G64
+            if (mantissa != 0) { FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); } // [G61.1 not supported]
+            // gc_block.modal.control = CONTROL_MODE_EXACT_PATH; // G61
             break;
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported G command]
         }
@@ -262,10 +244,7 @@ uint8_t gc_execute_line(char *line)
         // Determine 'M' command and its modal group
         if (mantissa > 0) { FAIL(STATUS_GCODE_COMMAND_VALUE_NOT_INTEGER); } // [No Mxx.x commands]
         switch(int_value) {
-          case 0:
-          case 1:
-          case 2:
-          case 30:
+          case 0: case 1: case 2: case 30:
             word_bit = MODAL_GROUP_M4;
             switch(int_value) {
               case 0: gc_block.modal.program_flow = PROGRAM_FLOW_PAUSED; break; // Program pause
@@ -273,10 +252,7 @@ uint8_t gc_execute_line(char *line)
               default: gc_block.modal.program_flow = (uint8_t)int_value; // Program end and reset
             }
             break;
-
-          case 3:
-          case 4:
-          case 5:
+          case 3: case 4: case 5:
             word_bit = MODAL_GROUP_M7;
             switch(int_value) {
               case 3: gc_block.modal.spindle = SPINDLE_ENABLE_CW; break;
@@ -284,32 +260,26 @@ uint8_t gc_execute_line(char *line)
               case 5: gc_block.modal.spindle = SPINDLE_DISABLE; break;
             }
             break;
-          case 6 : // Tool Change
-            break;
-#ifdef ENABLE_M7
-          case 7:
-#endif
-          case 8:
-          case 9:
-
+          #ifdef ENABLE_M7
+            case 7: case 8: case 9:
+          #else
+            case 8: case 9:
+          #endif
             word_bit = MODAL_GROUP_M8;
             switch(int_value) {
-#ifdef ENABLE_M7
-            	case 7: gc_block.modal.coolant = COOLANT_MIST_ENABLE; break;
-#endif
-            	case 8: gc_block.modal.coolant = COOLANT_FLOOD_ENABLE; break;
-            	case 9: gc_block.modal.coolant = COOLANT_DISABLE; break;
+              #ifdef ENABLE_M7
+                case 7: gc_block.modal.coolant |= COOLANT_MIST_ENABLE; break;
+              #endif
+              case 8: gc_block.modal.coolant |= COOLANT_FLOOD_ENABLE; break;
+              case 9: gc_block.modal.coolant = COOLANT_DISABLE; break; // M9 disables both M7 and M8.
             }
             break;
-#ifdef ENABLE_PARKING_OVERRIDE_CONTROL
-		  case 56:
-			  word_bit = MODAL_GROUP_M9;
-			  gc_block.modal.override = OVERRIDE_PARKING_MOTION;
-			  break;
-#endif
-		  case 400:
-			  mc_wait_end_of_motion();
-			  break;
+          #ifdef ENABLE_PARKING_OVERRIDE_CONTROL
+            case 56:
+              word_bit = MODAL_GROUP_M9;
+              gc_block.modal.override = OVERRIDE_PARKING_MOTION;
+              break;
+          #endif
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
         }
 
@@ -342,14 +312,13 @@ uint8_t gc_execute_line(char *line)
           // case 'Q': // Not supported
           case 'R': word_bit = WORD_R; gc_block.values.r = value; break;
           case 'S': word_bit = WORD_S; gc_block.values.s = value; break;
-		  case 'T': word_bit = WORD_T;
-				if (value > MAX_TOOL_NUMBER) { FAIL(STATUS_GCODE_MAX_VALUE_EXCEEDED); }
-					gc_block.values.t = (uint8_t)int_value;
-				break;
-		  case 'X': word_bit = WORD_X; gc_block.values.xyz[X_AXIS] = value; axis_words |= (1<<X_AXIS); break;
+          case 'T': word_bit = WORD_T; 
+					  if (value > MAX_TOOL_NUMBER) { FAIL(STATUS_GCODE_MAX_VALUE_EXCEEDED); }
+            gc_block.values.t = (uint8_t)int_value;
+						break;
+          case 'X': word_bit = WORD_X; gc_block.values.xyz[X_AXIS] = value; axis_words |= (1<<X_AXIS); break;
           case 'Y': word_bit = WORD_Y; gc_block.values.xyz[Y_AXIS] = value; axis_words |= (1<<Y_AXIS); break;
           case 'Z': word_bit = WORD_Z; gc_block.values.xyz[Z_AXIS] = value; axis_words |= (1<<Z_AXIS); break;
-          case 'A': word_bit = WORD_A; gc_block.values.xyz[A_AXIS] = value; axis_words |= (1<<A_AXIS); break;
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
         }
 
@@ -863,10 +832,7 @@ uint8_t gc_execute_line(char *line)
   } else {
     bit_false(value_words,(bit(WORD_N)|bit(WORD_F)|bit(WORD_S)|bit(WORD_T))); // Remove single-meaning value words.
   }
-  
-  if (axis_command) { 
-	bit_false(value_words,(bit(WORD_X)|bit(WORD_Y)|bit(WORD_Z)|bit(WORD_A))); // Remove axis words.
-	}
+  if (axis_command) { bit_false(value_words,(bit(WORD_X)|bit(WORD_Y)|bit(WORD_Z))); } // Remove axis words.
   if (value_words) { FAIL(STATUS_GCODE_UNUSED_WORDS); } // [Unused words]
 
   /* -------------------------------------------------------------------------------------
@@ -887,7 +853,7 @@ uint8_t gc_execute_line(char *line)
   if (gc_parser_flags & GC_PARSER_JOG_MOTION) {
     // Only distance and unit modal commands and G53 absolute override command are allowed.
     // NOTE: Feed rate word and axis word checks have already been performed in STEP 3.
-    if (command_words & ~(bit(MODAL_GROUP_G3) | bit(MODAL_GROUP_G6 | bit(MODAL_GROUP_G0))) ) { FAIL(STATUS_INVALID_JOG_COMMAND) };
+    if (command_words & ~(bit(MODAL_GROUP_G3) | bit(MODAL_GROUP_G6) | bit(MODAL_GROUP_G0)) ) { FAIL(STATUS_INVALID_JOG_COMMAND) };
     if (!(gc_block.non_modal_command == NON_MODAL_ABSOLUTE_OVERRIDE || gc_block.non_modal_command == NON_MODAL_NO_ACTION)) { FAIL(STATUS_INVALID_JOG_COMMAND); }
 
     // Initialize planner data to current spindle and coolant modal state.
@@ -954,9 +920,7 @@ uint8_t gc_execute_line(char *line)
         if (bit_isfalse(gc_parser_flags,GC_PARSER_LASER_ISMOTION)) {
           if (bit_istrue(gc_parser_flags,GC_PARSER_LASER_DISABLE)) {
              spindle_sync(gc_state.modal.spindle, 0.0);
-          } else {
-        	  spindle_sync(gc_state.modal.spindle, gc_block.values.s);
-          }
+          } else { spindle_sync(gc_state.modal.spindle, gc_block.values.s); }
         }
       #else
         spindle_sync(gc_state.modal.spindle, 0.0f);
@@ -989,8 +953,7 @@ uint8_t gc_execute_line(char *line)
     // NOTE: Coolant M-codes are modal. Only one command per line is allowed. But, multiple states
     // can exist at the same time, while coolant disable clears all states.
     coolant_sync(gc_block.modal.coolant);
-    if (gc_block.modal.coolant == COOLANT_DISABLE) { gc_state.modal.coolant = COOLANT_DISABLE; }
-    else { gc_state.modal.coolant |= gc_block.modal.coolant; }
+    gc_state.modal.coolant = gc_block.modal.coolant;
   }
   pl_data->condition |= gc_state.modal.coolant; // Set condition flag for planner use.
 
@@ -1037,8 +1000,7 @@ uint8_t gc_execute_line(char *line)
   }
 
   // [16. Set path control mode ]: G61.1/G64 NOT SUPPORTED
-  gc_state.modal.control = gc_block.modal.control; // NOTE: Always default.
-  pl_data->control = gc_block.modal.control;
+  // gc_state.modal.control = gc_block.modal.control; // NOTE: Always default.
 
   // [17. Set distance mode ]:
   gc_state.modal.distance = gc_block.modal.distance;
@@ -1167,8 +1129,7 @@ uint8_t gc_execute_line(char *line)
 
   // TODO: % to denote start of program.
 
-  if ( (axis_command == AXIS_COMMAND_MOTION_MODE) && (settings.wait_end_motion) && axis_words) return (STATUS_QUIET);
-  else return(STATUS_OK);
+  return(STATUS_OK);
 }
 
 
