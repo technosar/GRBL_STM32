@@ -143,19 +143,19 @@ void report_grbl_settings() {
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      5, bit_istrue(settings.flags, BITFLAG_INVERT_LIMIT_PINS));
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",      6, bit_istrue(settings.flags, BITFLAG_INVERT_PROBE_PIN));
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     10, settings.status_report_mask);
-  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  11, settings.junction_deviation);
-  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  12, settings.arc_tolerance);
+  sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  11, settings.junction_deviation);
+  sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  12, settings.arc_tolerance);
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     13, bit_istrue(settings.flags,BITFLAG_REPORT_INCHES));
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     20, bit_istrue(settings.flags,BITFLAG_SOFT_LIMIT_ENABLE));
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     21, bit_istrue(settings.flags,BITFLAG_HARD_LIMIT_ENABLE));
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     22, bit_istrue(settings.flags,BITFLAG_HOMING_ENABLE));
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     23, settings.homing_dir_mask);
-  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  24, settings.homing_feed_rate);
-  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  24, settings.homing_seek_rate);
+  sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  24, settings.homing_feed_rate);
+  sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  24, settings.homing_seek_rate);
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     26, settings.homing_debounce_delay);
-  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  27, settings.homing_pulloff);
-  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  30, settings.rpm_max);
-  sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  31, settings.rpm_min);
+  sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  27, settings.homing_pulloff);
+  sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  30, settings.rpm_max);
+  sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  31, settings.rpm_min);
 #ifdef VARIABLE_SPINDLE
   sprintf(str_report + strlen(str_report), "$%d=%d\r\n",     32, bit_istrue(settings.flags,BITFLAG_LASER_MODE));
 #else
@@ -168,10 +168,10 @@ void report_grbl_settings() {
   for (set_idx=0; set_idx<AXIS_N_SETTINGS; set_idx++) {
     for (idx=0; idx<N_AXIS; idx++) {
       switch (set_idx) {
-        case 0: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.steps_per_mm[idx]); break;
-        case 1: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.max_rate[idx]); break;
-        case 2: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.acceleration[idx]/(60.0f*60.0f)); break;
-        case 3: sprintf(str_report + strlen(str_report), "$%d=%6.3f\r\n",  val+idx, settings.max_travel[idx]); break;
+        case 0: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.steps_per_mm[idx]); break;
+        case 1: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.max_rate[idx]); break;
+        case 2: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.acceleration[idx]/(60.0f*60.0f)); break;
+        case 3: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.max_travel[idx]); break;
       }
     }
     val += AXIS_SETTINGS_INCREMENT;
