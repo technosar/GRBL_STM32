@@ -23,7 +23,6 @@
 #include "gpio.h"
 
 extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim2;
 
 // Some useful constants.
 #define DT_SEGMENT (1.0/(ACCELERATION_TICKS_PER_SECOND*60.0)) // min/segment
@@ -85,7 +84,7 @@ static st_block_t st_block_buffer[SEGMENT_BUFFER_SIZE-1];
 // the planner, where the remaining planner block steps still can.
 typedef struct {
   uint16_t n_step;           // Number of step events to be executed for this segment
-  uint16_t cycles_per_tick;  // Step distance traveled per ISR tick, aka step rate.
+  uint32_t cycles_per_tick;  // Step distance traveled per ISR tick, aka step rate.
   uint8_t  st_block_index;   // Stepper block data index. Uses this information to execute this segment.
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
     uint8_t amass_level;    // Indicates AMASS level for the ISR to execute this segment
@@ -245,17 +244,18 @@ void st_wake_up()
   #endif
 
   // Enable Stepper Driver Interrupt
-  TIM3->ARR = st.step_pulse_time;
-  TIM3->EGR = TIM_EGR_UG;
 
-  TIM2->ARR = st.exec_segment->cycles_per_tick - 1;
+  TIM2->ARR = (uint32_t)st.exec_segment->cycles_per_tick - 1;
+  TIM3->ARR = (((uint32_t)st.step_pulse_time*TICKS_PER_MICROSECOND) >> 1); //++
   // Set the Autoreload value
 #ifndef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
   TIM2->PSC = st.exec_segment->prescaler;
 #endif
   TIM2->EGR = TIM_EGR_UG;
+  TIM3->EGR = TIM_EGR_UG; // ++
 
- HAL_NVIC_EnableIRQ(TIM2_IRQn);
+  HAL_NVIC_EnableIRQ(TIM2_IRQn);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
 }
 
 
@@ -264,6 +264,7 @@ void st_go_idle()
 {
   // Disable Stepper Driver Interrupt. Allow Stepper Port Reset Interrupt to finish, if active.
   HAL_NVIC_DisableIRQ(TIM2_IRQn);
+  HAL_NVIC_DisableIRQ(TIM3_IRQn); // ++
   busy = false;
 
   // Set stepper driver idle state, disabled or enabled, depending on settings and circumstances.
@@ -354,9 +355,9 @@ void _TIM2_IRQHandler(void)
   // Enable step pulse reset timer so that The Stepper Port Reset Interrupt can reset the signal after
   // exactly settings.pulse_microseconds microseconds, independent of the main Timer1 prescaler.
   TIM3->CNT = 0;
-  TIM3->EGR = TIM_EGR_UG;
-  __HAL_TIM_CLEAR_IT(&htim3, TIM3_IRQn);
-  HAL_NVIC_EnableIRQ(TIM3_IRQn);
+  TIM3->ARR = (((uint32_t)st.step_pulse_time*TICKS_PER_MICROSECOND) >> 1);
+  //HAL_NVIC_EnableIRQ(TIM3_IRQn);
+  HAL_TIM_Base_Start(&htim3);
 
   busy = true;
 
@@ -368,7 +369,7 @@ void _TIM2_IRQHandler(void)
       st.exec_segment = &segment_buffer[segment_buffer_tail];
 
       // Initialize step segment timing per step and load number of steps to execute.
-	  TIM2->ARR = st.exec_segment->cycles_per_tick - 1;
+	  TIM2->ARR = (uint32_t)st.exec_segment->cycles_per_tick - 1;
 
 #ifndef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
 	  TIM2->PSC = st.exec_segment->prescaler;
@@ -499,8 +500,8 @@ void _TIM2_IRQHandler(void)
 // completing one step cycle.
 void _TIM3_IRQHandler(void)
 {
-	TIM3->CNT = 0;
-	HAL_NVIC_DisableIRQ(TIM3_IRQn);
+	//HAL_NVIC_DisableIRQ(TIM3_IRQn);
+	HAL_TIM_Base_Stop(&htim3);
 	GPIO_WritePort(STEP_PORT, (GPIO_ReadPort(STEP_PORT) & ~STEP_MASK) | (step_port_invert_mask & STEP_MASK));
 }
 #ifdef STEP_PULSE_DELAY
@@ -1007,7 +1008,7 @@ void st_prep_buffer()
         prep_segment->n_step <<= prep_segment->amass_level;
       }
       if (cycles < (1UL << 16)) { prep_segment->cycles_per_tick = cycles; } // < 65536 (4.1ms @ 16MHz)
-      else { prep_segment->cycles_per_tick = 0xffff; } // Just set the slowest speed possible.
+      else { prep_segment->cycles_per_tick = 0xffffffff; } // Just set the slowest speed possible.
     #else
       // Compute step timing and timer prescalar for normal step generation.
       if (cycles < (1UL << 16)) { // < 65536  (4.1ms @ 16MHz)
@@ -1021,7 +1022,7 @@ void st_prep_buffer()
         if (cycles < (1UL << 22)) { // < 4194304 (262ms@16MHz)
           prep_segment->cycles_per_tick =  cycles >> 6;
         } else { // Just set the slowest speed possible. (Around 4 step/sec.)
-          prep_segment->cycles_per_tick = 0xffff;
+          prep_segment->cycles_per_tick = 0xffffffff;
         }
       }
     #endif
