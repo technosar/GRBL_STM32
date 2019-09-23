@@ -5,7 +5,7 @@
 
 ***
 
-Grbl is a no-compromise, high performance, low cost alternative to parallel-port-based motion control for CNC milling. It will run on a STM32F746 (Open746I-C Standard). 
+Grbl **STM32** is a no-compromise, high performance, low cost alternative to parallel-port-based motion control for CNC milling. It will run on a STM32F746 (Open746I-C Standard from **[Waveshare](https://www.waveshare.com/product/mcu-tools/stm32/open/open746i-c-standard.htm)**). 
 
 The controller is written in highly optimized C utilizing every clever feature of the STM32-chips to achieve precise timing and asynchronous operation. It is able to maintain up to 200kHz of stable, jitter free control pulses.
 
@@ -26,7 +26,7 @@ Grbl includes full acceleration management with look ahead. That means the contr
 ***
 
 ``` 
-List of Supported G-Codes in Grbl v0.9 Master:
+List of Supported G-Codes in Grbl v1.1 STM32F7XX:
   - Non-Modal Commands: G4, G10L2, G10L20, G28, G30, G28.1, G30.1, G53, G92, G92.1
   - Motion Modes: G0, G1, G2, G3, G38.2, G38.3, G38.4, G38.5, G80
   - Feed Rate Modes: G93, G94
