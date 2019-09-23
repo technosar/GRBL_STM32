@@ -5,7 +5,7 @@
 
 ***
 
-Grbl is a no-compromise, high performance, low cost alternative to parallel-port-based motion control for CNC milling. It will run on a STM32F746 (Open746I-C Standard from **[Waveshare](https://www.waveshare.com/product/mcu-tools/stm32/open/open746i-c-standard.htm)**). 
+Grbl STM32 is a no-compromise, high performance, low cost alternative to parallel-port-based motion control for CNC milling. It will run on a STM32F746 (Open746I-C Standard from **[Waveshare](https://www.waveshare.com/product/mcu-tools/stm32/open/open746i-c-standard.htm)**). 
 
 The controller is written in highly optimized C utilizing every clever feature of the STM32-chips to achieve precise timing and asynchronous operation. It is able to maintain up to 200kHz of stable, jitter free control pulses.
 
