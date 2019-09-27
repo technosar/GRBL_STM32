@@ -5,7 +5,7 @@
 
 ***
 ``` 
-**New features :**
+New features :
   - external SPI EEPROM
   - M200 wait end of motion
   - M62 set outputs
