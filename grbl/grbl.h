@@ -57,6 +57,7 @@
 #include "stepper.h"
 #include "jog.h"
 #include "plc_io.h"
+#include "param.h"
 
 // ---------------------------------------------------------------------------------------
 // COMPILE-TIME ERROR CHECKING OF DEFINE VALUES:

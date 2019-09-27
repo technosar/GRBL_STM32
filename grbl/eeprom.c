@@ -21,7 +21,7 @@
 *                         $Revision: 1.6 $
 *                         $Date: Friday, February 11, 2005 07:16:44 UTC $
 ****************************************************************************/
-
+#include "eeprom.h"
 
 unsigned char eeprom[4096];
 
@@ -37,7 +37,9 @@ unsigned char eeprom[4096];
  */
 unsigned char eeprom_get_char( unsigned int addr )
 {
-	return eeprom[addr];
+	//return eeprom[addr];
+
+	return Eeprom_Read_Buffer((uint16_t)addr);
 }
 
 /*! \brief  Write byte to EEPROM.
@@ -59,31 +61,39 @@ unsigned char eeprom_get_char( unsigned int addr )
  */
 void eeprom_put_char( unsigned int addr, unsigned char new_value )
 {
-	eeprom[addr] = new_value;
+	//eeprom[addr] = new_value;
+	Eeprom_Fill_Buffer((uint16_t)addr, new_value);
 }
 
 // Extensions added as part of Grbl 
 
 
+// max 255 bytes
 void memcpy_to_eeprom_with_checksum(unsigned int destination, char *source, unsigned int size) {
 	unsigned char checksum = 0;
+	uint16_t dest = (destination & 0xFF);
+	Eeprom_Read_Page((uint16_t)destination);
 	for(; size > 0; size--) {
 		checksum = (checksum << 1) || (checksum >> 7);
 		checksum += *source;
-		eeprom_put_char(destination++, *(source++));
+		eeprom_put_char(dest++, *(source++));
 	}
-	eeprom_put_char(destination, checksum);
+	eeprom_put_char(dest, checksum);
+	Eeprom_Write_Page((uint16_t)destination);
 }
 
+// max 255 bytes
 int memcpy_from_eeprom_with_checksum(char *destination, unsigned int source, unsigned int size) {
   unsigned char data, checksum = 0;
+  uint16_t src = (source & 0xFF);
+  Eeprom_Read_Page((uint16_t)source);
   for(; size > 0; size--) { 
-    data = eeprom_get_char(source++);
+    data = eeprom_get_char(src++);
     checksum = (checksum << 1) || (checksum >> 7);
     checksum += data;    
     *(destination++) = data; 
   }
-  return(checksum == eeprom_get_char(source));
+  return(checksum == eeprom_get_char(src));
 }
 
 // end of file

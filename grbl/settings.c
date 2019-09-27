@@ -42,31 +42,27 @@ void settings_store_build_info(char *line)
   memcpy_to_eeprom_with_checksum(EEPROM_ADDR_BUILD_INFO,(char*)line, LINE_BUFFER_SIZE);
 }
 
-
-// Method to store coord data parameters into EEPROM
-void settings_write_coord_data(uint8_t coord_select, float *coord_data)
-{
-  #ifdef FORCE_BUFFER_SYNC_DURING_EEPROM_WRITE
-    protocol_buffer_synchronize();
-  #endif
-  uint32_t addr = coord_select*(sizeof(float)*N_AXIS+1) + EEPROM_ADDR_PARAMETERS;
-  memcpy_to_eeprom_with_checksum(addr,(char*)coord_data, sizeof(float)*N_AXIS);
-}
-
-
 // Method to store Grbl global settings struct and version number into EEPROM
 // NOTE: This function can only be called in IDLE state.
 void write_global_settings()
 {
-  eeprom_put_char(0, SETTINGS_VERSION);
-  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_GLOBAL, (char*)&settings, sizeof(settings_t));
+	uint8_t *buf;
+
+	if ((buf = malloc(sizeof(settings_t)+1)) != NULL) {
+		*buf++ = SETTINGS_VERSION;
+		buf = memcpy(buf, (char*)&settings, sizeof(settings_t));
+		memcpy_to_eeprom_with_checksum(EEPROM_ADDR_VERSION, (char*)--buf, sizeof(settings_t)+1);
+		free(buf);
+	}
 }
 
 
 // Method to restore EEPROM-saved Grbl global settings back to defaults.
 void settings_restore(uint8_t restore_flag) {
+	char data = 0;
+
   if (restore_flag & SETTINGS_RESTORE_DEFAULTS) {    
-	  settings.pulse_microseconds = (uint8_t)DEFAULT_STEP_PULSE_MICROSECONDS;
+	  	  settings.pulse_microseconds = (uint8_t)DEFAULT_STEP_PULSE_MICROSECONDS;
 	      settings.stepper_idle_lock_time = (uint8_t)DEFAULT_STEPPER_IDLE_LOCK_TIME;
 	      settings.step_invert_mask = (uint8_t)DEFAULT_STEPPING_INVERT_MASK;
 	      settings.dir_invert_mask = (uint8_t)DEFAULT_DIRECTION_INVERT_MASK;
@@ -121,18 +117,15 @@ void settings_restore(uint8_t restore_flag) {
 
   if (restore_flag & SETTINGS_RESTORE_STARTUP_LINES) {
     #if N_STARTUP_LINE > 0
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK, 0);
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK+1, 0); // Checksum
+	  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_STARTUP_BLOCK, &data, sizeof(char));
     #endif
     #if N_STARTUP_LINE > 1
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK+(LINE_BUFFER_SIZE+1), 0);
-      eeprom_put_char(EEPROM_ADDR_STARTUP_BLOCK+(LINE_BUFFER_SIZE+2), 0); // Checksum
+	  memcpy_to_eeprom_with_checksum(LINE_BUFFER_SIZE+1, &data, sizeof(char));
     #endif
   }
 
   if (restore_flag & SETTINGS_RESTORE_BUILD_INFO) {
-    eeprom_put_char(EEPROM_ADDR_BUILD_INFO , 0);
-    eeprom_put_char(EEPROM_ADDR_BUILD_INFO+1 , 0); // Checksum
+	  memcpy_to_eeprom_with_checksum(EEPROM_ADDR_BUILD_INFO, &data, sizeof(char));
   }
 }
 
@@ -164,10 +157,21 @@ uint8_t settings_read_build_info(char *line)
 }
 
 
+// Method to store coord data parameters into EEPROM
+void settings_write_coord_data(uint8_t coord_select, float *coord_data)
+{
+  #ifdef FORCE_BUFFER_SYNC_DURING_EEPROM_WRITE
+    protocol_buffer_synchronize();
+  #endif
+  uint32_t addr = coord_select*(sizeof(float)*N_AXIS+EEPROM_CHECKSUM_SIZE) + EEPROM_ADDR_PARAMETERS;
+  memcpy_to_eeprom_with_checksum(addr,(char*)coord_data, sizeof(float)*N_AXIS);
+}
+
+
 // Read selected coordinate data from EEPROM. Updates pointed coord_data value.
 uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 {
-  uint32_t addr = coord_select*(sizeof(float)*N_AXIS+1) + EEPROM_ADDR_PARAMETERS;
+  uint32_t addr = coord_select*(sizeof(float)*N_AXIS+EEPROM_CHECKSUM_SIZE) + EEPROM_ADDR_PARAMETERS;
   if (!(memcpy_from_eeprom_with_checksum((char*)coord_data, addr, sizeof(float)*N_AXIS))) {
     // Reset with default zero vector
     clear_vector_float(coord_data);
@@ -181,6 +185,7 @@ uint8_t settings_read_coord_data(uint8_t coord_select, float *coord_data)
 // Reads Grbl global settings struct from EEPROM.
 uint8_t read_global_settings() {
   // Check version-byte of eeprom
+  Eeprom_Read_Page(EEPROM_PAGE0);
   uint8_t version = eeprom_get_char(0);
   if (version == SETTINGS_VERSION) {
     // Read settings-record and check checksum

@@ -59,8 +59,12 @@
 
 /* Private define ------------------------------------------------------------*/
 
+#define PWM_OUT_Pin GPIO_PIN_6
+#define PWM_OUT_GPIO_Port GPIOF
 #define LED_TX_Pin GPIO_PIN_4
 #define LED_TX_GPIO_Port GPIOH
+#define SPI1_NSS_Pin GPIO_PIN_4
+#define SPI1_NSS_GPIO_Port GPIOA
 #define STEPPERS_DISABLE_BIT_Pin GPIO_PIN_2
 #define STEPPERS_DISABLE_BIT_GPIO_Port GPIOB
 #define LIMIT_X_Pin GPIO_PIN_8

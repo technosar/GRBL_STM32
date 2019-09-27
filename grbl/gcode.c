@@ -84,7 +84,7 @@ uint8_t gc_execute_line(char *line)
   uint8_t ijk_words = 0; // IJK tracking
 
   // Initialize command and value words and parser flags variables.
-  uint16_t command_words = 0; // Tracks G and M command words. Also used for modal group violations.
+  uint32_t command_words = 0; // Tracks G and M command words. Also used for modal group violations.
   uint16_t value_words = 0; // Tracks value words.
   uint8_t gc_parser_flags = GC_PARSER_NONE;
 
@@ -105,7 +105,7 @@ uint8_t gc_execute_line(char *line)
      perform initial error-checks for command word modal group violations, for any repeated
      words, and for negative values set for the value words F, N, P, T, and S. */
 
-  uint8_t word_bit; // Bit-value for assigning tracking variables
+  uint8_t word_bit = 0; // Bit-value for assigning tracking variables
   uint32_t char_counter;
   char letter;
   float value;
@@ -120,6 +120,8 @@ uint8_t gc_execute_line(char *line)
     letter = line[char_counter];
     if((letter < 'A') || (letter > 'Z')) { FAIL(STATUS_EXPECTED_COMMAND_LETTER); } // [Expected word letter]
     char_counter++;
+
+    //@ TODO changer le code de retour et interpreter les erreurs
     if (!read_float(line, &char_counter, &value)) { FAIL(STATUS_BAD_NUMBER_FORMAT); } // [Expected word value]
 
     // Convert values to smaller uint8 significand and mantissa values for parsing this word.
@@ -280,6 +282,28 @@ uint8_t gc_execute_line(char *line)
               gc_block.modal.override = OVERRIDE_PARKING_MOTION;
               break;
           #endif
+
+              // wait end of motion
+          case 200:
+        	  	  mc_wait_end_of_motion();
+        	  	  sys.wait_end_motion = 1;
+			    break;
+
+			  //Digital Output Control
+          case 62 :
+        	  	  word_bit = MODAL_GROUP_M99;
+        	  	  gc_block.modal.plcio = PLC_OUTPUT_CONTROL_SET;
+        	  break;
+
+          case 63 :
+        	  	  word_bit = MODAL_GROUP_M99;
+        	  	  gc_block.modal.plcio = PLC_OUTPUT_CONTROL_RESET;
+              break;
+
+          case 66 :
+        	  	  word_bit = MODAL_GROUP_M99;
+        	      gc_block.modal.plcio = PLC_WAIT_INPUT_EVENT;
+        	  break;
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
         }
 
@@ -308,6 +332,7 @@ uint8_t gc_execute_line(char *line)
           case 'L': word_bit = WORD_L; gc_block.values.l = (uint8_t)int_value; break;
           case 'N': word_bit = WORD_N; gc_block.values.n = truncf(value); break;
           case 'P': word_bit = WORD_P; gc_block.values.p = value; break;
+          case 'Q': word_bit = WORD_Q; gc_block.values.q = value; break;
           // NOTE: For certain commands, P value must be an integer, but none of these commands are supported.
           // case 'Q': // Not supported
           case 'R': word_bit = WORD_R; gc_block.values.r = value; break;
@@ -376,6 +401,14 @@ uint8_t gc_execute_line(char *line)
     if (gc_block.values.n > MAX_LINE_NUMBER) { FAIL(STATUS_GCODE_INVALID_LINE_NUMBER); } // [Exceeds max line number]
   }
   // bit_false(value_words,bit(WORD_N)); // NOTE: Single-meaning value word. Set at end of error-checking.
+
+  if (bit_istrue(command_words,bit(MODAL_GROUP_M99))) { // P value is needed for all plcio command
+	  if (bit_isfalse(value_words,bit(WORD_P))) { FAIL(STATUS_GCODE_VALUE_WORD_MISSING);} // [P word missing for M62 and M63]
+	  if (gc_block.modal.plcio == PLC_WAIT_INPUT_EVENT) {
+		  if (bit_isfalse(value_words,bit(bit(WORD_L)|bit(WORD_Q)))) { FAIL(STATUS_GCODE_VALUE_WORD_MISSING);} // [P,L,Q words missing for M62 and M66]
+	  }
+	  bit_false(value_words,bit(WORD_P)|bit(WORD_L)|bit(WORD_Q));
+  	}
 
   // Track for unused words at the end of error-checking.
   // NOTE: Single-meaning value words are removed all at once at the end of error-checking, because
@@ -902,6 +935,17 @@ uint8_t gc_execute_line(char *line)
   #ifdef USE_LINE_NUMBERS
     pl_data->line_number = gc_state.line_number; // Record data for planner use.
   #endif
+
+    if (bit_istrue(command_words,bit(MODAL_GROUP_M99))) {
+    	switch (gc_block.modal.plcio) {
+    		case PLC_OUTPUT_CONTROL_RESET : plc_output_set_state((int)(gc_block.values.p), PLC_OUTPUT_CONTROL_RESET);
+    		break;
+    		case PLC_OUTPUT_CONTROL_SET : plc_output_set_state((int)(gc_block.values.p), PLC_OUTPUT_CONTROL_SET);
+    		break;
+    		case PLC_WAIT_INPUT_EVENT : plc_wait_input_event((uint32_t)gc_block.values.p, (uint32_t)gc_block.values.l, (uint32_t)gc_block.values.q);
+    		break;
+    	}
+  }
 
   // [1. Comments feedback ]:  NOT SUPPORTED
 

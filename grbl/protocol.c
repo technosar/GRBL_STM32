@@ -26,6 +26,8 @@
 #define LINE_FLAG_COMMENT_PARENTHESES bit(1)
 #define LINE_FLAG_COMMENT_SEMICOLON bit(2)
 
+extern setup _setup;
+extern TIM_HandleTypeDef htim5;
 
 static char line[LINE_BUFFER_SIZE]; // Line to be executed. Zero-terminated.
 
@@ -70,7 +72,13 @@ void protocol_main_loop()
 
   uint8_t line_flags = 0;
   uint8_t char_counter = 0;
+  int counter = 0;
+  int res;
   uint8_t c;
+  int index;
+
+  sys.prev_state = STATE_IDLE;
+
   for (;;) {
 
     // Process one line of incoming serial data, as the data becomes available. Performs an
@@ -96,6 +104,10 @@ void protocol_main_loop()
         } else if (line[0] == '$') {
           // Grbl '$' system command
           report_status_message(system_execute_line(line));
+        } else if (line[0] == '#') {
+        	res = read_parameter_setting(&line[0], &counter, _setup.parameters, &index);
+        	if (res) report_status_message(res);
+        	counter = 0;
         } else if (sys.state & (STATE_ALARM | STATE_JOG)) {
           // Everything else is gcode. Block if in alarm or jog mode.
           report_status_message(STATUS_SYSTEM_GC_LOCK);
@@ -214,8 +226,9 @@ void protocol_execute_realtime()
 // NOTE: Do not alter this unless you know exactly what you are doing!
 void protocol_exec_rt_system()
 {
-  uint8_t rt_exec; // Temp variable to avoid calling volatile multiple times.
+  uint32_t rt_exec; // Temp variable to avoid calling volatile multiple times.
   rt_exec = sys_rt_exec_alarm; // Copy volatile sys_rt_exec_alarm.
+  sys.prev_state = sys.state;
   if (rt_exec) { // Enter only if any bit flag is true
     // System alarm. Everything has shutdown by something that has gone severely wrong. Report
     // the source of the error to the user. If critical, Grbl disables by entering an infinite
@@ -498,6 +511,14 @@ void protocol_exec_rt_system()
     st_prep_buffer();
   }
 
+  if (sys.prev_state == STATE_CYCLE && sys.state == STATE_IDLE) {
+	  if (sys.wait_end_motion) {
+		  report_status_message(STATUS_OK);
+		  sys.wait_end_motion = 0;
+	  }
+  }
+
+  sys.encoder_count = htim5.Instance->CNT;
 }
 
 

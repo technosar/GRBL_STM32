@@ -79,7 +79,7 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-       
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -101,6 +101,7 @@ void MX_FREERTOS_Init(void) {
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_QUEUES */
@@ -120,7 +121,7 @@ void StartDefaultTask(void const * argument)
   //@HAL_ADC_Start_DMA(&hadc1, (uint32_t*)_setup.parameters_ext, 5);
 
   /* USER CODE BEGIN StartDefaultTask */
-
+  delay_ms(100);
   grbl_init();
   /* Infinite loop */
   for(;;)

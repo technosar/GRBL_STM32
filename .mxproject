@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=D:/projets/STM32/GRBL_DEVICE/Inc
+HeaderPath=D:/projets/GRBL_STM32/Inc
 HeaderFiles=gpio.h;adc.h;dma.h;FreeRTOSConfig.h;spi.h;tim.h;usart.h;usb_device.h;usbd_conf.h;usbd_desc.h;usbd_cdc_if.h;stm32f7xx_it.h;stm32f7xx_hal_conf.h;main.h;
-SourcePath=D:/projets/STM32/GRBL_DEVICE/Src
+SourcePath=D:/projets/GRBL_STM32/Src
 SourceFiles=gpio.c;adc.c;dma.c;freertos.c;spi.c;tim.c;usart.c;usb_device.c;usbd_conf.c;usbd_desc.c;usbd_cdc_if.c;stm32f7xx_it.c;stm32f7xx_hal_msp.c;stm32f7xx_hal_timebase_TIM.c;main.c;
 
 [PreviousLibFiles]

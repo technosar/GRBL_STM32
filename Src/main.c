@@ -122,9 +122,11 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM5_Init();
   MX_TIM3_Init();
+  MX_SPI1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
   HAL_TIM_Base_Start_IT(&htim3);
+  HAL_TIM_Encoder_Start_IT(&htim5,htim5.Channel);
   /* USER CODE END 2 */
 
   /* Call init function for freertos objects (in freertos.c) */

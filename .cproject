@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <?fileVersion 4.0.0?><cproject storage_type_id="org.eclipse.cdt.core.XmlProjectDescriptionStorage">
 	<storageModule moduleId="org.eclipse.cdt.core.settings">
 		<cconfiguration id="fr.ac6.managedbuild.config.gnu.cross.exe.debug.1321218667">
@@ -19,12 +20,12 @@
 						<toolChain id="fr.ac6.managedbuild.toolchain.gnu.cross.exe.debug.642861143" name="Ac6 STM32 MCU GCC" superClass="fr.ac6.managedbuild.toolchain.gnu.cross.exe.debug">
 							<option id="fr.ac6.managedbuild.option.gnu.cross.prefix.1954799960" name="Prefix" superClass="fr.ac6.managedbuild.option.gnu.cross.prefix" value="arm-none-eabi-" valueType="string" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.mcu.1885127934" name="Mcu" superClass="fr.ac6.managedbuild.option.gnu.cross.mcu" value="STM32F746IETx" valueType="string" />
-							<option id="fr.ac6.managedbuild.option.gnu.cross.board.338014671" name="Board" superClass="fr.ac6.managedbuild.option.gnu.cross.board" value="GRBL_DEVICE" valueType="string" />
+							<option id="fr.ac6.managedbuild.option.gnu.cross.board.338014671" name="Board" superClass="fr.ac6.managedbuild.option.gnu.cross.board" value="GRBL_STM32" valueType="string" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.instructionSet.2133332227" name="Instruction Set" superClass="fr.ac6.managedbuild.option.gnu.cross.instructionSet" value="fr.ac6.managedbuild.option.gnu.cross.instructionSet.thumbII" valueType="enumerated" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.fpu.2019159529" name="Floating point hardware" superClass="fr.ac6.managedbuild.option.gnu.cross.fpu" value="fr.ac6.managedbuild.option.gnu.cross.fpu.fpv5-sp-d16" valueType="enumerated" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.floatabi.2066999979" name="Floating-point ABI" superClass="fr.ac6.managedbuild.option.gnu.cross.floatabi" value="fr.ac6.managedbuild.option.gnu.cross.floatabi.hard" valueType="enumerated" />
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="fr.ac6.managedbuild.targetPlatform.gnu.cross.23155872" isAbstract="false" osList="all" superClass="fr.ac6.managedbuild.targetPlatform.gnu.cross" />
-							<builder buildPath="${workspace_loc:/GRBL_DEVICE}/Debug" id="fr.ac6.managedbuild.builder.gnu.cross.702505822" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="fr.ac6.managedbuild.builder.gnu.cross">
+							<builder buildPath="${workspace_loc:/GRBL_STM32}/Debug" id="fr.ac6.managedbuild.builder.gnu.cross.702505822" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="fr.ac6.managedbuild.builder.gnu.cross">
 								<outputEntries>
 									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="Debug" />
 								</outputEntries>
@@ -137,12 +138,12 @@
 						<toolChain id="fr.ac6.managedbuild.toolchain.gnu.cross.exe.release.1959732709" name="Ac6 STM32 MCU GCC" superClass="fr.ac6.managedbuild.toolchain.gnu.cross.exe.release">
 							<option id="fr.ac6.managedbuild.option.gnu.cross.prefix.1954799960" name="Prefix" superClass="fr.ac6.managedbuild.option.gnu.cross.prefix" value="arm-none-eabi-" valueType="string" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.mcu.1885127934" name="Mcu" superClass="fr.ac6.managedbuild.option.gnu.cross.mcu" value="STM32F746IETx" valueType="string" />
-							<option id="fr.ac6.managedbuild.option.gnu.cross.board.338014671" name="Board" superClass="fr.ac6.managedbuild.option.gnu.cross.board" value="GRBL_DEVICE" valueType="string" />
+							<option id="fr.ac6.managedbuild.option.gnu.cross.board.338014671" name="Board" superClass="fr.ac6.managedbuild.option.gnu.cross.board" value="GRBL_STM32" valueType="string" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.instructionSet.2133332227" name="Instruction Set" superClass="fr.ac6.managedbuild.option.gnu.cross.instructionSet" value="fr.ac6.managedbuild.option.gnu.cross.instructionSet.thumbII" valueType="enumerated" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.fpu.2019159529" name="Floating point hardware" superClass="fr.ac6.managedbuild.option.gnu.cross.fpu" value="fr.ac6.managedbuild.option.gnu.cross.fpu.fpv5-sp-d16" valueType="enumerated" />
 							<option id="fr.ac6.managedbuild.option.gnu.cross.floatabi.2066999979" name="Floating-point ABI" superClass="fr.ac6.managedbuild.option.gnu.cross.floatabi" value="fr.ac6.managedbuild.option.gnu.cross.floatabi.hard" valueType="enumerated" />
 							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="fr.ac6.managedbuild.targetPlatform.gnu.cross.23155872" isAbstract="false" osList="all" superClass="fr.ac6.managedbuild.targetPlatform.gnu.cross" />
-							<builder buildPath="${workspace_loc:/GRBL_DEVICE}/Release" id="fr.ac6.managedbuild.builder.gnu.cross.702505822" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="fr.ac6.managedbuild.builder.gnu.cross">
+							<builder buildPath="${workspace_loc:/GRBL_STM32}/Release" id="fr.ac6.managedbuild.builder.gnu.cross.702505822" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Gnu Make Builder" superClass="fr.ac6.managedbuild.builder.gnu.cross">
 								<outputEntries>
 									<entry flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="outputPath" name="Release" />
 								</outputEntries>
@@ -243,7 +244,7 @@
 		</cconfiguration>
 	</storageModule>
 	<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-		<project id="GRBL_DEVICE.fr.ac6.managedbuild.target.gnu.cross.exe.1169372159" name="Executable" projectType="fr.ac6.managedbuild.target.gnu.cross.exe" />
+		<project id="GRBL_STM32.fr.ac6.managedbuild.target.gnu.cross.exe.1169372159" name="Executable" projectType="fr.ac6.managedbuild.target.gnu.cross.exe" />
 	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="" />
@@ -254,7 +255,7 @@
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders" />
 	<storageModule moduleId="refreshScope" versionNumber="2">
 		<configuration artifactName="${ProjName}" configurationName="Debug">
-			<resource resourceType="PROJECT" workspacePath="GRBL_DEVICE" />
+			<resource resourceType="PROJECT" workspacePath="GRBL_STM32" />
 		</configuration>
 	</storageModule>
 </cproject>

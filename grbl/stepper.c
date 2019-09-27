@@ -873,7 +873,9 @@ void st_prep_buffer()
           break;
         case RAMP_ACCEL:
           // NOTE: Acceleration ramp only computes during first do-while loop.
+        	// dT = A*dT
           speed_var = pl_block->acceleration*time_var;
+          // dX = dX - (0.5*A*dT² + V0*dT)
           mm_remaining -= time_var*(prep.current_speed + 0.5*speed_var);
           if (mm_remaining < prep.accelerate_until) { // End of acceleration ramp.
             // Acceleration-cruise, acceleration-deceleration ramp junction, or end of block.
@@ -1008,7 +1010,7 @@ void st_prep_buffer()
         prep_segment->n_step <<= prep_segment->amass_level;
       }
       if (cycles < (1UL << 16)) { prep_segment->cycles_per_tick = cycles; } // < 65536 (4.1ms @ 16MHz)
-      else { prep_segment->cycles_per_tick = 0xffffffff; } // Just set the slowest speed possible.
+      else { prep_segment->cycles_per_tick = 0xffff; } // Just set the slowest speed possible.
     #else
       // Compute step timing and timer prescalar for normal step generation.
       if (cycles < (1UL << 16)) { // < 65536  (4.1ms @ 16MHz)
@@ -1022,7 +1024,7 @@ void st_prep_buffer()
         if (cycles < (1UL << 22)) { // < 4194304 (262ms@16MHz)
           prep_segment->cycles_per_tick =  cycles >> 6;
         } else { // Just set the slowest speed possible. (Around 4 step/sec.)
-          prep_segment->cycles_per_tick = 0xffffffff;
+          prep_segment->cycles_per_tick = 0xffff;
         }
       }
     #endif

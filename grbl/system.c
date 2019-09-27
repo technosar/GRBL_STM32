@@ -24,7 +24,7 @@
 
 void system_init()
 {
-
+	//Eeprom_Write_CR();
 }
 
 

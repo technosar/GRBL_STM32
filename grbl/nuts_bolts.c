@@ -24,9 +24,6 @@
 
 #define MAX_INT_DIGITS 8 // Maximum number of digits in int32 (and float)
 
-volatile uint32_t timestamp = 0;
-volatile uint32_t tick = 0;
-
 // Extracts a floating point value from a string. The following code is based loosely on
 // the avr-libc strtod() function by Michael Stumpf and Dmitry Xmelkov and many freely
 // available conversion method examples, but has been highly optimized for Grbl. For known
@@ -114,9 +111,9 @@ uint8_t read_float(char *line, uint32_t *char_counter, float *float_ptr)
 void delay_sec(float seconds, uint8_t mode)
 {
 	uint32_t i = (uint32_t)seconds;
-	tick = timestamp;
+	uint32_t tick = HAL_GetTick();
 
-	while ((timestamp - tick)< i) {
+	while ((HAL_GetTick() - tick)< i) {
 		if (sys.abort) { return; }
 		if (mode == DELAY_MODE_DWELL) {
 			protocol_execute_realtime();
@@ -128,17 +125,13 @@ void delay_sec(float seconds, uint8_t mode)
 	}
 }
 
-void delay(uint32_t time, uint32_t load)
-{
-	tick = timestamp;
-	while ((timestamp - tick) < time);
-}
-
 // Delays variable defined milliseconds. Compiler compatibility fix for _delay_ms(),
 // which only accepts constants in future compiler releases.
 void delay_ms(uint32_t ms)
 {
-	delay(ms, 0);
+	uint32_t tick = HAL_GetTick();
+
+	while ((HAL_GetTick() - tick) < ms);
 }
 
 // Simple hypotenuse computation function.

@@ -62,6 +62,25 @@ void report_status_message(uint8_t status_code)
   }
 }
 
+// Report internal parameters
+void report_parameter(unsigned int id, float param, int valuetype)
+{
+	switch (valuetype) {
+			case TYPE_NULL:   { break;}
+	        case TYPE_FLOAT:  { sprintf(str_report,"#%d=%.3f\r\nok\r\n", id, param); break;}
+	        case TYPE_UINT8:  { sprintf(str_report,"#%d=%d\r\nok\r\n", id, (int)param); break;}
+	        case TYPE_UINT16: { sprintf(str_report,"#%d=%d\r\nok\r\n", id, (int)param); break;}
+	        case TYPE_UINT32: { sprintf(str_report,"#%d=%d\r\nok\r\n", id, (int)param); break;}
+	        case TYPE_INT8:   { sprintf(str_report,"#%d=%d\r\nok\r\n", id, (int)param); break;}
+	        case TYPE_INT16:  { sprintf(str_report,"#%d=%d\r\nok\r\n", id, (int)param); break;}
+	        case TYPE_INT32:  { sprintf(str_report,"#%d=%d\r\nok\r\n", id, (int)param); break;}
+	        case TYPE_STRING: {  break;}
+	        case TYPE_BOOL:   {  break;}
+	        default : break;
+	    }
+
+	CDC_send_str(str_report, strlen(str_report));
+}
 
 // Prints alarm messages.
 void report_alarm_message(uint8_t alarm_code)

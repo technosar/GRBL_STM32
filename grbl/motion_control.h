@@ -48,6 +48,9 @@ void mc_arc(float *target, plan_line_data_t *pl_data, float *position, float *of
 // Dwell for a specific number of seconds
 void mc_dwell(float seconds);
 
+// Wait end of motion
+void mc_wait_end_of_motion();
+
 // Perform homing cycle to locate machine zero. Requires limit switches.
 void mc_homing_cycle(uint8_t cycle_mask);
 

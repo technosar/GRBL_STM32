@@ -22,6 +22,7 @@
 #define system_h
 
 #include "grbl.h"
+#include "../BSP/AT45DBXX/AT45DBXX.h"
 
 // Define system executor bit map. Used internally by realtime protocol as realtime command flags,
 // which notifies the main program to execute the specified realtime command asynchronously.
@@ -128,6 +129,7 @@
 // Define global system variables
 typedef struct {
   uint8_t state;               // Tracks the current system state of Grbl.
+  uint8_t prev_state;          // Tracks the previous current system state of Grbl.
   uint8_t abort;               // System abort flag. Forces exit back to main loop for reset.             
   uint8_t suspend;             // System suspend bitflag variable that manages holds, cancels, and safety door.
   uint8_t soft_limit;          // Tracks soft limit errors for the state machine. (boolean)
@@ -149,6 +151,8 @@ typedef struct {
   #ifdef VARIABLE_SPINDLE
     float spindle_speed;
   #endif
+    uint8_t wait_end_motion;
+    int32_t encoder_count;
 } system_t;
 extern system_t sys;
 

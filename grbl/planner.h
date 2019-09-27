@@ -32,6 +32,23 @@
   #endif
 #endif
 
+typedef enum {						    // value typing for config and JSON
+	TYPE_EMPTY = -1,					// value struct is empty (which is not the same as "NULL")
+	TYPE_NULL = 0,						// value is 'null' (meaning the JSON null value)
+	TYPE_PARENT,						// object is a parent to a sub-object
+	TYPE_FLOAT,							// value is a floating point number
+	TYPE_UINT8,						    // value is a unsigned
+	TYPE_UINT16,					    // value is a unsigned
+	TYPE_UINT32,					    // value is a unsigned
+	TYPE_INT8,						    // value is a signed
+	TYPE_INT16,						    // value is a signed
+	TYPE_INT32,						    // value is a signed
+	TYPE_STRING,						// value is in string field
+	TYPE_BOOL,							// value is "true" (1) or "false"(0)
+	TYPE_DATA,							// value is blind cast to uint32_t
+	TYPE_ARRAY							// value is array element count, values are CSV ASCII in string field
+} valueType;
+
 // Returned status message from planner.
 #define PLAN_OK true
 #define PLAN_EMPTY_BLOCK false

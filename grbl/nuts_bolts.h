@@ -81,8 +81,6 @@ void delay_ms(uint32_t ms);
 // Delays variable-defined microseconds. Compiler compatibility fix for _delay_us().
 void delay_us(uint32_t us);
 
-void delay(uint32_t time, uint32_t load);
-
 // Computes hypotenuse, avoiding avr-gcc's bloated version and the extra error checking.
 float hypot_f(float x, float y);
 

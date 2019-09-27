@@ -199,6 +199,13 @@ void mc_dwell(float seconds)
   delay_sec(seconds, DELAY_MODE_DWELL);
 }
 
+// wait end of motion
+void mc_wait_end_of_motion()
+{
+	if (sys.state == STATE_CHECK_MODE) { return; }
+	protocol_buffer_synchronize();
+}
+
 
 // Perform homing cycle to locate and set machine zero. Only '$H' executes this command.
 // NOTE: There should be no motions in the buffer and Grbl must be in an idle state before
