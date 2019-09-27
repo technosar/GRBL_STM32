@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Project>
-<ProjectName>D:\projets\STM32\GRBL_DEVICE\\GRBL_DEVICE</ProjectName>
+<ProjectName>D:\projets\GRBL_STM32\\GRBL_STM32</ProjectName>
 <ProjectNature>C</ProjectNature> 
 <CMSIS>..\Drivers\CMSIS</CMSIS>
 <HAL_Driver>C:\Users\PC\STM32Cube\Repository\STM32Cube_FW_F7_V1.11.0\Drivers\CMSIS</HAL_Driver>
@@ -22,7 +22,7 @@
 
 <configs>
   <config>
-    <name>GRBL_DEVICE</name>				
+    <name>GRBL_STM32</name>				
     <device>STM32F746IETx</device>		 
     <heapSize>0x8000</heapSize>
     <stackSize>0x400</stackSize>
