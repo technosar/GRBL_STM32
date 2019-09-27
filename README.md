@@ -11,7 +11,7 @@
   - M62 set outputs
   - M63 reset outputs
   - M66 wait input event
-***
+**
 ``` 
 ***
 
