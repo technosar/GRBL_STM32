@@ -4,14 +4,15 @@
 ### Grbl v1.1 STM32F7 has been released !
 
 ***
-*** New features :
-	- external SPI EEPROM
-	- M200 wait end of motion
-	- M62 set outputs
-	- M63 reset outputs
-	- M66 wait input event
+``` 
+** New features :
+  - external SPI EEPROM
+  - M200 wait end of motion
+  - M62 set outputs
+  - M63 reset outputs
+  - M66 wait input event
 ***
-
+``` 
 ***
 
 Grbl **STM32** is a no-compromise, high performance, low cost alternative to parallel-port-based motion control for CNC milling. It will run on a STM32F746 (Open746I-C Standard from **[Waveshare](https://www.waveshare.com/product/mcu-tools/stm32/open/open746i-c-standard.htm)**). 
