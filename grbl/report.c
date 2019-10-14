@@ -352,8 +352,9 @@ void report_startup_line(uint8_t n, char *line)
 
 void report_execute_startup_message(char *line, uint8_t status_code)
 {
-  sprintf(str_report,">%s:%d\r\n", line, status_code);
-  CDC_send_str(str_report, strlen(str_report));
+	sprintf(str_report,">%s:", line);
+	CDC_send_str(str_report, strlen(str_report));
+	report_status_message(status_code);
 }
 
 // Prints build info line
