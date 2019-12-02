@@ -127,8 +127,8 @@ uint8_t system_execute_line(char *line)
   switch( line[char_counter] ) {
     case 0 : report_grbl_help(); break;
     case 'J' : // Jogging
-      // Execute only if in IDLE or JOG states.
-      if (sys.state != STATE_IDLE && sys.state != STATE_JOG) { return(STATUS_IDLE_ERROR); }
+      // Execute only if in IDLE, CYCLE or JOG states.
+      if (sys.state != STATE_IDLE && sys.state != STATE_JOG && sys.state != STATE_CYCLE) { return(STATUS_IDLE_ERROR); }
       if(line[2] != '=') { return(STATUS_INVALID_STATEMENT); }
       return(gc_execute_line(line)); // NOTE: $J= is ignored inside g-code parser and used to detect jog motions.
       break;
