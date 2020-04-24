@@ -572,30 +572,38 @@
 #define DEFAULT_X_STEPS_PER_MM 400.0f
 #define DEFAULT_Y_STEPS_PER_MM 400.0f
 #define DEFAULT_Z_STEPS_PER_MM 400.0f
-#define DEFAULT_U_STEPS_PER_MM 400.0f
 #define DEFAULT_A_STEPS_PER_MM 400.0f
 #define DEFAULT_B_STEPS_PER_MM 400.0f
+#define DEFAULT_C_STEPS_PER_MM 400.0f
+#define DEFAULT_U_STEPS_PER_MM 400.0f
+#define DEFAULT_V_STEPS_PER_MM 400.0f
 
 #define DEFAULT_X_MAX_RATE 6000.0f // mm/min
 #define DEFAULT_Y_MAX_RATE 6000.0f // mm/min
 #define DEFAULT_Z_MAX_RATE 6000.0f // mm/min
-#define DEFAULT_U_MAX_RATE 6000.0f // mm/min
 #define DEFAULT_A_MAX_RATE 6000.0f // mm/min
 #define DEFAULT_B_MAX_RATE 6000.0f // mm/min
+#define DEFAULT_C_MAX_RATE 6000.0f // mm/min
+#define DEFAULT_U_MAX_RATE 6000.0f // mm/min
+#define DEFAULT_V_MAX_RATE 6000.0f // mm/min
 
 #define DEFAULT_X_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
 #define DEFAULT_Y_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
 #define DEFAULT_Z_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
-#define DEFAULT_U_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
 #define DEFAULT_A_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
 #define DEFAULT_B_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
+#define DEFAULT_C_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
+#define DEFAULT_U_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
+#define DEFAULT_V_ACCELERATION (500.0f*60*60) // 500*60*60 mm/min^2 = 500 mm/sec^2
 
 #define DEFAULT_X_MAX_TRAVEL 1000.0f // mm NOTE: Must be a positive value.
 #define DEFAULT_Y_MAX_TRAVEL 1300.0f // mm NOTE: Must be a positive value.
 #define DEFAULT_Z_MAX_TRAVEL 200.0f // mm NOTE: Must be a positive value.
-#define DEFAULT_U_MAX_TRAVEL 200.0f // mm NOTE: Must be a positive value.
 #define DEFAULT_A_MAX_TRAVEL 200.0f // mm NOTE: Must be a positive value.
 #define DEFAULT_B_MAX_TRAVEL 200.0f // mm NOTE: Must be a positive value.
+#define DEFAULT_C_MAX_TRAVEL 200.0f // mm NOTE: Must be a positive value.
+#define DEFAULT_U_MAX_TRAVEL 200.0f // mm NOTE: Must be a positive value.
+#define DEFAULT_V_MAX_TRAVEL 200.0f // mm NOTE: Must be a positive value.
 
 #define DEFAULT_SPINDLE_RPM_MAX 24000.0f // rpm
 #define DEFAULT_SPINDLE_RPM_MIN 0.0f // rpm

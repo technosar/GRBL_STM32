@@ -102,7 +102,13 @@ typedef struct {
   // Used by the bresenham line algorithm
   uint32_t counter_x,        // Counter variables for the bresenham line tracer
            counter_y,
-           counter_z;
+           counter_z,
+  	  	   counter_a,
+		   counter_b,
+		   counter_c,
+		   counter_u,
+		   counter_v;
+
   #ifdef STEP_PULSE_DELAY
     uint8_t step_bits;  // Stores out_bits output to complete the step pulse delay
   #endif
@@ -382,7 +388,7 @@ void _TIM2_IRQHandler(void)
         st.exec_block = &st_block_buffer[st.exec_block_index];
 
         // Initialize Bresenham line and distance counters
-        st.counter_x = st.counter_y = st.counter_z = (st.exec_block->step_event_count >> 1);
+        st.counter_x = st.counter_y = st.counter_z = st.counter_a = st.counter_b = st.counter_c = st.counter_u = st.counter_v = (st.exec_block->step_event_count >> 1);
       }
       st.dir_outbits = st.exec_block->direction_bits ^ dir_port_invert_mask;
       #ifdef ENABLE_DUAL_AXIS
@@ -394,6 +400,11 @@ void _TIM2_IRQHandler(void)
         st.steps[X_AXIS] = st.exec_block->steps[X_AXIS] >> st.exec_segment->amass_level;
         st.steps[Y_AXIS] = st.exec_block->steps[Y_AXIS] >> st.exec_segment->amass_level;
         st.steps[Z_AXIS] = st.exec_block->steps[Z_AXIS] >> st.exec_segment->amass_level;
+        st.steps[A_AXIS] = st.exec_block->steps[A_AXIS] >> st.exec_segment->amass_level;
+        st.steps[B_AXIS] = st.exec_block->steps[B_AXIS] >> st.exec_segment->amass_level;
+        st.steps[C_AXIS] = st.exec_block->steps[C_AXIS] >> st.exec_segment->amass_level;
+        st.steps[U_AXIS] = st.exec_block->steps[U_AXIS] >> st.exec_segment->amass_level;
+        st.steps[V_AXIS] = st.exec_block->steps[V_AXIS] >> st.exec_segment->amass_level;
       #endif
 
       #ifdef VARIABLE_SPINDLE
@@ -423,6 +434,7 @@ void _TIM2_IRQHandler(void)
     st.step_outbits_dual = 0;
   #endif
 
+
   // Execute step displacement profile by Bresenham line algorithm
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
     st.counter_x += st.steps[X_AXIS];
@@ -438,6 +450,8 @@ void _TIM2_IRQHandler(void)
     if (st.exec_block->direction_bits & (1<<X_DIRECTION_BIT)) { sys_position[X_AXIS]--; }
     else { sys_position[X_AXIS]++; }
   }
+
+
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
     st.counter_y += st.steps[Y_AXIS];
   #else
@@ -452,6 +466,8 @@ void _TIM2_IRQHandler(void)
     if (st.exec_block->direction_bits & (1<<Y_DIRECTION_BIT)) { sys_position[Y_AXIS]--; }
     else { sys_position[Y_AXIS]++; }
   }
+
+
   #ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
     st.counter_z += st.steps[Z_AXIS];
   #else
@@ -462,6 +478,66 @@ void _TIM2_IRQHandler(void)
     st.counter_z -= st.exec_block->step_event_count;
     if (st.exec_block->direction_bits & (1<<Z_DIRECTION_BIT)) { sys_position[Z_AXIS]--; }
     else { sys_position[Z_AXIS]++; }
+  }
+
+#ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
+    st.counter_a += st.steps[A_AXIS];
+  #else
+    st.counter_a += st.exec_block->steps[A_AXIS];
+  #endif
+  if (st.counter_a > st.exec_block->step_event_count) {
+    st.step_outbits |= (1<<A_STEP_BIT);
+    st.counter_a -= st.exec_block->step_event_count;
+    if (st.exec_block->direction_bits & (1<<A_DIRECTION_BIT)) { sys_position[A_AXIS]--; }
+    else { sys_position[A_AXIS]++; }
+  }
+
+#ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
+    st.counter_b += st.steps[B_AXIS];
+  #else
+    st.counter_b += st.exec_block->steps[B_AXIS];
+  #endif
+  if (st.counter_b > st.exec_block->step_event_count) {
+    st.step_outbits |= (1<<B_STEP_BIT);
+    st.counter_b -= st.exec_block->step_event_count;
+    if (st.exec_block->direction_bits & (1<<B_DIRECTION_BIT)) { sys_position[B_AXIS]--; }
+    else { sys_position[B_AXIS]++; }
+  }
+
+#ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
+    st.counter_c += st.steps[C_AXIS];
+  #else
+    st.counter_c += st.exec_block->steps[C_AXIS];
+  #endif
+  if (st.counter_c > st.exec_block->step_event_count) {
+    st.step_outbits |= (1<<C_STEP_BIT);
+    st.counter_c -= st.exec_block->step_event_count;
+    if (st.exec_block->direction_bits & (1<<C_DIRECTION_BIT)) { sys_position[C_AXIS]--; }
+    else { sys_position[C_AXIS]++; }
+  }
+
+#ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
+    st.counter_u += st.steps[U_AXIS];
+  #else
+    st.counter_u += st.exec_block->steps[U_AXIS];
+  #endif
+  if (st.counter_u > st.exec_block->step_event_count) {
+    st.step_outbits |= (1<<U_STEP_BIT);
+    st.counter_u -= st.exec_block->step_event_count;
+    if (st.exec_block->direction_bits & (1<<U_DIRECTION_BIT)) { sys_position[U_AXIS]--; }
+    else { sys_position[U_AXIS]++; }
+  }
+
+#ifdef ADAPTIVE_MULTI_AXIS_STEP_SMOOTHING
+    st.counter_v += st.steps[V_AXIS];
+  #else
+    st.counter_v += st.exec_block->steps[V_AXIS];
+  #endif
+  if (st.counter_v > st.exec_block->step_event_count) {
+    st.step_outbits |= (1<<V_STEP_BIT);
+    st.counter_v -= st.exec_block->step_event_count;
+    if (st.exec_block->direction_bits & (1<<V_DIRECTION_BIT)) { sys_position[V_AXIS]--; }
+    else { sys_position[V_AXIS]++; }
   }
 
   // During a homing cycle, lock out and prevent desired axes from moving.

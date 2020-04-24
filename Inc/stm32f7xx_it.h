@@ -4,7 +4,7 @@
   * @brief   This file contains the headers of the interrupt handlers.
   ******************************************************************************
   *
-  * COPYRIGHT(c) 2019 STMicroelectronics
+  * COPYRIGHT(c) 2020 STMicroelectronics
   *
   * Redistribution and use in source and binary forms, with or without modification,
   * are permitted provided that the following conditions are met:
@@ -55,7 +55,6 @@ void UsageFault_Handler(void);
 void DebugMon_Handler(void);
 void SysTick_Handler(void);
 void DMA1_Stream4_IRQHandler(void);
-void EXTI9_5_IRQHandler(void);
 void TIM1_UP_TIM10_IRQHandler(void);
 void TIM2_IRQHandler(void);
 void TIM3_IRQHandler(void);

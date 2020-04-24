@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2019 STMicroelectronics International N.V. 
+  * Copyright (c) 2020 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -314,6 +314,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
   RxBufferCount = *Len;
 
   ptdata = Buf;
+  Buf[*Len] = 0;
 
   data = *ptdata;
 
@@ -359,6 +360,7 @@ static int8_t CDC_Receive_FS(uint8_t* Buf, uint32_t *Len)
             #ifdef ENABLE_M7
               case CMD_COOLANT_MIST_OVR_TOGGLE: system_set_exec_accessory_override_flag(EXEC_COOLANT_MIST_OVR_TOGGLE); break;
             #endif
+
           }
           // Throw away any unfound extended-ASCII character by not passing it to the serial buffer.
         } else { // Write character to buffer
@@ -388,31 +390,35 @@ uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len)
 {
   uint8_t result = USBD_OK;
   /* USER CODE BEGIN 7 */
+  uint8_t *ptBuf;
   USBD_CDC_HandleTypeDef *hcdc = (USBD_CDC_HandleTypeDef*)hUsbDeviceFS.pClassData;
-  if (hcdc->TxState != 0){
-    return USBD_BUSY;
-  }
+    if (hcdc->TxState != 0){
+      return USBD_BUSY;
+    }
 
-  CDC_led_tx_on(1);
+    CDC_led_tx_on(1);
 
-  do {
-	  if (!hcdc->TxState) {
-		  if (Len > APP_TX_DATA_SIZE) {
-			  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, APP_TX_DATA_SIZE);
-			  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-			  Len -= APP_TX_DATA_SIZE;
-			  Buf += APP_TX_DATA_SIZE;
-		  }
-		  else {
-			  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
-			  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
-			  Len = 0;
-		  }
-	  }
-  }
-  while (Len);
-
-
+    do {
+  	  if (!hcdc->TxState) {
+  		  if (Len > APP_TX_DATA_SIZE) {
+  			  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, APP_TX_DATA_SIZE);
+  			  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
+  			  Len -= APP_TX_DATA_SIZE;
+  			  Buf += APP_TX_DATA_SIZE;
+  		  }
+  		  else {
+  			  if ((Len & 0x3F) == 0) { // bug correction on USB. If you have only 64,128,256 or 512 datas the usb stall
+  				  ptBuf = Buf + (strlen((const char *)Buf) + 1);
+  				  *ptBuf = 0;
+  				  Len++;
+  			  }
+  			  USBD_CDC_SetTxBuffer(&hUsbDeviceFS, Buf, Len);
+  			  result = USBD_CDC_TransmitPacket(&hUsbDeviceFS);
+  			  Len = 0;
+  		  }
+  	  }
+    }
+    while (Len);
   /* USER CODE END 7 */
   return result;
 }

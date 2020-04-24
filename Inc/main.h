@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2019 STMicroelectronics International N.V. 
+  * Copyright (c) 2020 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -59,6 +59,16 @@
 
 /* Private define ------------------------------------------------------------*/
 
+#define LIMIT_Z_Pin GPIO_PIN_2
+#define LIMIT_Z_GPIO_Port GPIOE
+#define LIMIT_A_Pin GPIO_PIN_3
+#define LIMIT_A_GPIO_Port GPIOE
+#define LIMIT_B_Pin GPIO_PIN_4
+#define LIMIT_B_GPIO_Port GPIOE
+#define LIMIT_C_Pin GPIO_PIN_5
+#define LIMIT_C_GPIO_Port GPIOE
+#define LIMIT_U_Pin GPIO_PIN_6
+#define LIMIT_U_GPIO_Port GPIOE
 #define PWM_OUT_Pin GPIO_PIN_6
 #define PWM_OUT_GPIO_Port GPIOF
 #define LED_TX_Pin GPIO_PIN_4
@@ -67,21 +77,12 @@
 #define SPI1_NSS_GPIO_Port GPIOA
 #define STEPPERS_DISABLE_BIT_Pin GPIO_PIN_2
 #define STEPPERS_DISABLE_BIT_GPIO_Port GPIOB
-#define LIMIT_X_Pin GPIO_PIN_8
-#define LIMIT_X_GPIO_Port GPIOE
-#define LIMIT_X_EXTI_IRQn EXTI9_5_IRQn
-#define LIMIT_Y_Pin GPIO_PIN_9
-#define LIMIT_Y_GPIO_Port GPIOE
-#define LIMIT_Y_EXTI_IRQn EXTI9_5_IRQn
-#define LIMIT_Z_Pin GPIO_PIN_10
-#define LIMIT_Z_GPIO_Port GPIOE
-#define LIMIT_Z_EXTI_IRQn EXTI15_10_IRQn
-#define UI0_Pin GPIO_PIN_11
-#define UI0_GPIO_Port GPIOE
-#define UI1_Pin GPIO_PIN_12
-#define UI1_GPIO_Port GPIOE
-#define UI2_Pin GPIO_PIN_13
-#define UI2_GPIO_Port GPIOE
+#define CLK_X_Pin GPIO_PIN_0
+#define CLK_X_GPIO_Port GPIOG
+#define DIR_X_Pin GPIO_PIN_1
+#define DIR_X_GPIO_Port GPIOG
+#define LIMIT_V_Pin GPIO_PIN_7
+#define LIMIT_V_GPIO_Port GPIOE
 #define PROBE_Pin GPIO_PIN_14
 #define PROBE_GPIO_Port GPIOE
 #define UI3_Pin GPIO_PIN_15
@@ -106,24 +107,40 @@
 #define CONTROL_RESET_Pin GPIO_PIN_15
 #define CONTROL_RESET_GPIO_Port GPIOD
 #define CONTROL_RESET_EXTI_IRQn EXTI15_10_IRQn
-#define CLK_X_Pin GPIO_PIN_0
-#define CLK_X_GPIO_Port GPIOD
-#define DIR_X_Pin GPIO_PIN_1
-#define DIR_X_GPIO_Port GPIOD
 #define CLK_Y_Pin GPIO_PIN_2
-#define CLK_Y_GPIO_Port GPIOD
+#define CLK_Y_GPIO_Port GPIOG
 #define DIR_Y_Pin GPIO_PIN_3
-#define DIR_Y_GPIO_Port GPIOD
+#define DIR_Y_GPIO_Port GPIOG
 #define CLK_Z_Pin GPIO_PIN_4
-#define CLK_Z_GPIO_Port GPIOD
+#define CLK_Z_GPIO_Port GPIOG
 #define DIR_Z_Pin GPIO_PIN_5
-#define DIR_Z_GPIO_Port GPIOD
+#define DIR_Z_GPIO_Port GPIOG
 #define CLK_A_Pin GPIO_PIN_6
-#define CLK_A_GPIO_Port GPIOD
+#define CLK_A_GPIO_Port GPIOG
 #define DIR_A_Pin GPIO_PIN_7
-#define DIR_A_GPIO_Port GPIOD
+#define DIR_A_GPIO_Port GPIOG
+#define CLK_B_Pin GPIO_PIN_8
+#define CLK_B_GPIO_Port GPIOG
+#define DIR_B_Pin GPIO_PIN_9
+#define DIR_B_GPIO_Port GPIOG
+#define CLK_C_Pin GPIO_PIN_10
+#define CLK_C_GPIO_Port GPIOG
+#define DIR_C_Pin GPIO_PIN_11
+#define DIR_C_GPIO_Port GPIOG
+#define CLK_U_Pin GPIO_PIN_12
+#define CLK_U_GPIO_Port GPIOG
+#define DIR_U_Pin GPIO_PIN_13
+#define DIR_U_GPIO_Port GPIOG
+#define CLK_V_Pin GPIO_PIN_14
+#define CLK_V_GPIO_Port GPIOG
+#define DIR_V_Pin GPIO_PIN_15
+#define DIR_V_GPIO_Port GPIOG
 #define LED_RX_Pin GPIO_PIN_7
 #define LED_RX_GPIO_Port GPIOB
+#define LIMIT_X_Pin GPIO_PIN_0
+#define LIMIT_X_GPIO_Port GPIOE
+#define LIMIT_Y_Pin GPIO_PIN_1
+#define LIMIT_Y_GPIO_Port GPIOE
 
 /* ########################## Assert Selection ############################## */
 /**

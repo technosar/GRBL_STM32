@@ -27,48 +27,74 @@
 #define cpu_map_h
 
 // Define step pulse output pins. NOTE: All step bit pins must be on the same port.
-#define STEP_PORT       GPIOD
+#define STEP_PORT       GPIOG
 #define X_STEP_BIT      0
 #define Y_STEP_BIT      2
 #define Z_STEP_BIT      4
 #define A_STEP_BIT      6
+#define B_STEP_BIT      8
+#define C_STEP_BIT      10
+#define U_STEP_BIT      12
+#define V_STEP_BIT      14
 
 #define X_STEP_BIT_DEF (1<<X_STEP_BIT)
 #define Y_STEP_BIT_DEF (1<<Y_STEP_BIT)
 #define Z_STEP_BIT_DEF (1<<Z_STEP_BIT)
 #define A_STEP_BIT_DEF (1<<A_STEP_BIT)
+#define B_STEP_BIT_DEF (1<<B_STEP_BIT)
+#define C_STEP_BIT_DEF (1<<C_STEP_BIT)
+#define U_STEP_BIT_DEF (1<<U_STEP_BIT)
+#define V_STEP_BIT_DEF (1<<V_STEP_BIT)
 
-#define STEP_MASK       (X_STEP_BIT_DEF|Y_STEP_BIT_DEF|Z_STEP_BIT_DEF|A_STEP_BIT_DEF) // All step bits
+#define STEP_MASK       (X_STEP_BIT_DEF|Y_STEP_BIT_DEF|Z_STEP_BIT_DEF|A_STEP_BIT_DEF|B_STEP_BIT_DEF|C_STEP_BIT_DEF|U_STEP_BIT_DEF|V_STEP_BIT_DEF) // All step bits
 
   // Define step direction output pins. NOTE: All direction pins must be on the same port.
-#define DIRECTION_PORT    GPIOD
+#define DIRECTION_PORT    GPIOG
 #define X_DIRECTION_BIT   1
 #define Y_DIRECTION_BIT   3
 #define Z_DIRECTION_BIT   5
 #define A_DIRECTION_BIT   7
+#define B_DIRECTION_BIT   9
+#define C_DIRECTION_BIT   11
+#define U_DIRECTION_BIT   13
+#define V_DIRECTION_BIT   15
 
 
 #define X_DIRECTION_BIT_DEF (1<<X_DIRECTION_BIT)
 #define Y_DIRECTION_BIT_DEF (1<<Y_DIRECTION_BIT)
 #define Z_DIRECTION_BIT_DEF (1<<Z_DIRECTION_BIT)
 #define A_DIRECTION_BIT_DEF (1<<A_DIRECTION_BIT)
+#define B_DIRECTION_BIT_DEF (1<<B_DIRECTION_BIT)
+#define C_DIRECTION_BIT_DEF (1<<C_DIRECTION_BIT)
+#define U_DIRECTION_BIT_DEF (1<<U_DIRECTION_BIT)
+#define V_DIRECTION_BIT_DEF (1<<V_DIRECTION_BIT)
 
-#define DIRECTION_MASK    (X_DIRECTION_BIT_DEF|Y_DIRECTION_BIT_DEF|Z_DIRECTION_BIT_DEF|A_DIRECTION_BIT_DEF) // All direction bits
+
+#define DIRECTION_MASK    (X_DIRECTION_BIT_DEF|Y_DIRECTION_BIT_DEF|Z_DIRECTION_BIT_DEF|A_DIRECTION_BIT_DEF|B_DIRECTION_BIT_DEF|C_DIRECTION_BIT_DEF|U_DIRECTION_BIT_DEF|V_DIRECTION_BIT_DEF) // All direction bits
 // Define homing/hard limit switch input pins and limit interrupt vectors.
 // NOTE: All limit bit pins must be on the same port
 #define LIMIT_PIN_PORT   GPIOE
 
-#define X_LIMIT_BIT      8
-#define Y_LIMIT_BIT      9
-#define Z_LIMIT_BIT      10
-#define A_LIMIT_BIT      11
+#define X_LIMIT_BIT      0
+#define Y_LIMIT_BIT      1
+#define Z_LIMIT_BIT      2
+#define A_LIMIT_BIT      3
+#define B_LIMIT_BIT      4
+#define C_LIMIT_BIT      5
+#define U_LIMIT_BIT      6
+#define V_LIMIT_BIT      7
 
 #define LIMIT_X_BIT_DEF (1<<X_LIMIT_BIT)
 #define LIMIT_Y_BIT_DEF (1<<Y_LIMIT_BIT)
 #define LIMIT_Z_BIT_DEF (1<<Z_LIMIT_BIT)
 #define LIMIT_A_BIT_DEF (1<<A_LIMIT_BIT)
+#define LIMIT_B_BIT_DEF (1<<B_LIMIT_BIT)
+#define LIMIT_C_BIT_DEF (1<<C_LIMIT_BIT)
+#define LIMIT_U_BIT_DEF (1<<U_LIMIT_BIT)
+#define LIMIT_V_BIT_DEF (1<<V_LIMIT_BIT)
 
-#define LIMIT_MASK       (LIMIT_X_BIT_DEF|LIMIT_Y_BIT_DEF|LIMIT_Z_BIT_DEF|LIMIT_A_BIT_DEF) // All limit bits
+
+#define LIMIT_MASK       (LIMIT_X_BIT_DEF|LIMIT_Y_BIT_DEF|LIMIT_Z_BIT_DEF|LIMIT_A_BIT_DEF|LIMIT_B_BIT_DEF|LIMIT_C_BIT_DEF|LIMIT_U_BIT_DEF|LIMIT_V_BIT_DEF) // All limit bits
 
 // Define probe switch input pin.
 #define PROBE_PORT                    GPIOE

@@ -92,19 +92,39 @@ void settings_restore(uint8_t restore_flag) {
 	      settings.steps_per_mm[X_AXIS] = DEFAULT_X_STEPS_PER_MM;
 	      settings.steps_per_mm[Y_AXIS] = DEFAULT_Y_STEPS_PER_MM;
 	      settings.steps_per_mm[Z_AXIS] = DEFAULT_Z_STEPS_PER_MM;
+	      settings.steps_per_mm[A_AXIS] = DEFAULT_A_STEPS_PER_MM;
+	      settings.steps_per_mm[B_AXIS] = DEFAULT_B_STEPS_PER_MM;
+	      settings.steps_per_mm[C_AXIS] = DEFAULT_C_STEPS_PER_MM;
+	      settings.steps_per_mm[U_AXIS] = DEFAULT_U_STEPS_PER_MM;
+	      settings.steps_per_mm[V_AXIS] = DEFAULT_V_STEPS_PER_MM;
 
 	      settings.max_rate[X_AXIS] = DEFAULT_X_MAX_RATE;
 	      settings.max_rate[Y_AXIS] = DEFAULT_Y_MAX_RATE;
 	      settings.max_rate[Z_AXIS] = DEFAULT_Z_MAX_RATE;
+	      settings.max_rate[A_AXIS] = DEFAULT_A_MAX_RATE;
+	      settings.max_rate[B_AXIS] = DEFAULT_B_MAX_RATE;
+	      settings.max_rate[C_AXIS] = DEFAULT_C_MAX_RATE;
+	      settings.max_rate[U_AXIS] = DEFAULT_U_MAX_RATE;
+	      settings.max_rate[V_AXIS] = DEFAULT_V_MAX_RATE;
 
 
 	      settings.acceleration[X_AXIS] = DEFAULT_X_ACCELERATION;
 	      settings.acceleration[Y_AXIS] = DEFAULT_Y_ACCELERATION;
 	      settings.acceleration[Z_AXIS] = DEFAULT_Z_ACCELERATION;
+	      settings.acceleration[A_AXIS] = DEFAULT_A_ACCELERATION;
+	      settings.acceleration[B_AXIS] = DEFAULT_B_ACCELERATION;
+	      settings.acceleration[C_AXIS] = DEFAULT_C_ACCELERATION;
+	      settings.acceleration[U_AXIS] = DEFAULT_U_ACCELERATION;
+	      settings.acceleration[V_AXIS] = DEFAULT_V_ACCELERATION;
 
 	      settings.max_travel[X_AXIS] = (-DEFAULT_X_MAX_TRAVEL);
 	      settings.max_travel[Y_AXIS] = (-DEFAULT_Y_MAX_TRAVEL);
 	      settings.max_travel[Z_AXIS] = (-DEFAULT_Z_MAX_TRAVEL);
+	      settings.max_travel[A_AXIS] = (-DEFAULT_A_MAX_TRAVEL);
+	      settings.max_travel[B_AXIS] = (-DEFAULT_B_MAX_TRAVEL);
+	      settings.max_travel[C_AXIS] = (-DEFAULT_C_MAX_TRAVEL);
+	      settings.max_travel[U_AXIS] = (-DEFAULT_U_MAX_TRAVEL);
+	      settings.max_travel[V_AXIS] = (-DEFAULT_V_MAX_TRAVEL);
     write_global_settings();
   }
 
@@ -328,7 +348,12 @@ uint16_t get_step_pin_mask(uint8_t axis_idx)
 {
   if ( axis_idx == X_AXIS ) { return((1<<X_STEP_BIT)); }
   if ( axis_idx == Y_AXIS ) { return((1<<Y_STEP_BIT)); }
-  return((1<<Z_STEP_BIT));
+  if ( axis_idx == Z_AXIS ) { return((1<<Z_STEP_BIT)); }
+  if ( axis_idx == A_AXIS ) { return((1<<A_STEP_BIT)); }
+  if ( axis_idx == B_AXIS ) { return((1<<B_STEP_BIT)); }
+  if ( axis_idx == C_AXIS ) { return((1<<C_STEP_BIT)); }
+  if ( axis_idx == U_AXIS ) { return((1<<U_STEP_BIT)); }
+  return((1<<V_STEP_BIT));
 }
 
 
@@ -337,7 +362,12 @@ uint16_t get_direction_pin_mask(uint8_t axis_idx)
 {
   if ( axis_idx == X_AXIS ) { return((1<<X_DIRECTION_BIT)); }
   if ( axis_idx == Y_AXIS ) { return((1<<Y_DIRECTION_BIT)); }
-  return((1<<Z_DIRECTION_BIT));
+  if ( axis_idx == Z_AXIS ) { return((1<<Z_DIRECTION_BIT)); }
+  if ( axis_idx == A_AXIS ) { return((1<<A_DIRECTION_BIT)); }
+  if ( axis_idx == B_AXIS ) { return((1<<B_DIRECTION_BIT)); }
+  if ( axis_idx == C_AXIS ) { return((1<<C_DIRECTION_BIT)); }
+  if ( axis_idx == U_AXIS ) { return((1<<U_DIRECTION_BIT)); }
+  return((1<<V_DIRECTION_BIT));
 }
 
 
@@ -347,7 +377,11 @@ uint16_t get_limit_pin_mask(uint8_t axis_idx)
   if ( axis_idx == X_AXIS ) { return((1<<X_LIMIT_BIT)); }
   if ( axis_idx == Y_AXIS ) { return((1<<Y_LIMIT_BIT)); }
   if ( axis_idx == Z_AXIS ) { return((1<<Z_LIMIT_BIT)); }
-  return((1<<A_LIMIT_BIT));
+  if ( axis_idx == A_AXIS ) { return((1<<A_LIMIT_BIT)); }
+  if ( axis_idx == B_AXIS ) { return((1<<B_LIMIT_BIT)); }
+  if ( axis_idx == C_AXIS ) { return((1<<C_LIMIT_BIT)); }
+  if ( axis_idx == U_AXIS ) { return((1<<U_LIMIT_BIT)); }
+  return((1<<V_LIMIT_BIT));
 }
 
 uint16_t get_probe_pin_mask()

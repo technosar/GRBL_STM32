@@ -385,7 +385,7 @@ void report_realtime_status()
   int32_t current_position[N_AXIS]; // Copy current state of the system position variable
   memcpy(current_position,sys_position,sizeof(sys_position));
   float print_position[N_AXIS];
-  system_convert_array_steps_to_mpos(print_position,current_position);
+  system_convert_array_steps_to_mpos(print_position, current_position);
 
   // Report current machine state and sub-states
   sprintf(str_report, "<");
@@ -448,7 +448,18 @@ void report_realtime_status()
   } else {
 	  sprintf(str_report + strlen(str_report),"|WPos:");
   }
-  sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f", print_position[X_AXIS], print_position[Y_AXIS], print_position[Z_AXIS]);
+  switch (gc_state.z_select) {
+  	  case MAP_P0 :
+  	  case MAP_P1 : sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f,%.3f", print_position[X_AXIS], print_position[Y_AXIS], print_position[Z_AXIS], print_position[A_AXIS]);
+  		  	  	  	break;
+  	  case MAP_P2 : sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f,%.3f", print_position[X_AXIS], print_position[Y_AXIS], print_position[Z_AXIS], print_position[B_AXIS]);
+  	  		  	  	break;
+  	  case MAP_P3 : sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f,%.3f", print_position[X_AXIS], print_position[Y_AXIS], print_position[U_AXIS], print_position[C_AXIS]);
+  	  	  		    break;
+  	  case MAP_P4 : sprintf(str_report + strlen(str_report),"%.3f,%.3f,%.3f,%.3f", print_position[X_AXIS], print_position[Y_AXIS], print_position[U_AXIS], print_position[V_AXIS]);
+  	  	  		  	break;
+  }
+
 
 
   // Returns planner and serial read buffer states.

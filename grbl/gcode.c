@@ -80,7 +80,7 @@ uint8_t gc_execute_line(char *line)
   uint8_t coord_select = 0; // Tracks G10 P coordinate selection for execution
 
   // Initialize bitflag tracking variables for axis indices compatible operations.
-  uint8_t axis_words = 0; // XYZ tracking
+  uint16_t axis_words = 0; // XYZABCUV tracking
   uint8_t ijk_words = 0; // IJK tracking
 
   // Initialize command and value words and parser flags variables.
@@ -283,27 +283,32 @@ uint8_t gc_execute_line(char *line)
               break;
           #endif
 
+              // map the Z axis for OpenPnP project
+          case 100 :
+        	  	  word_bit = MODAL_GROUP_M99;
+        	  	  gc_block.modal.map_z = MAP_Z;
+        	  	  break;
               // wait end of motion
           case 200:
         	  	  mc_wait_end_of_motion();
         	  	  sys.wait_end_motion = 1;
-			    break;
+			      break;
 
 			  //Digital Output Control
           case 62 :
         	  	  word_bit = MODAL_GROUP_M99;
         	  	  gc_block.modal.plcio = PLC_OUTPUT_CONTROL_SET;
-        	  break;
+        	      break;
 
           case 63 :
         	  	  word_bit = MODAL_GROUP_M99;
         	  	  gc_block.modal.plcio = PLC_OUTPUT_CONTROL_RESET;
-              break;
+                  break;
 
           case 66 :
         	  	  word_bit = MODAL_GROUP_M99;
         	      gc_block.modal.plcio = PLC_WAIT_INPUT_EVENT;
-        	  break;
+        	      break;
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported M command]
         }
 
@@ -320,9 +325,6 @@ uint8_t gc_execute_line(char *line)
            legal g-code words and stores their value. Error-checking is performed later since some
            words (I,J,K,L,P,R) have multiple connotations and/or depend on the issued commands. */
         switch(letter){
-          // case 'A': // Not supported
-          // case 'B': // Not supported
-          // case 'C': // Not supported
           // case 'D': // Not supported
           case 'F': word_bit = WORD_F; gc_block.values.f = value; break;
           // case 'H': // Not supported
@@ -338,12 +340,66 @@ uint8_t gc_execute_line(char *line)
           case 'R': word_bit = WORD_R; gc_block.values.r = value; break;
           case 'S': word_bit = WORD_S; gc_block.values.s = value; break;
           case 'T': word_bit = WORD_T; 
-					  if (value > MAX_TOOL_NUMBER) { FAIL(STATUS_GCODE_MAX_VALUE_EXCEEDED); }
-            gc_block.values.t = (uint8_t)int_value;
-						break;
+					if (value > MAX_TOOL_NUMBER) { FAIL(STATUS_GCODE_MAX_VALUE_EXCEEDED); }
+					gc_block.values.t = (uint8_t)int_value;
+					break;
           case 'X': word_bit = WORD_X; gc_block.values.xyz[X_AXIS] = value; axis_words |= (1<<X_AXIS); break;
           case 'Y': word_bit = WORD_Y; gc_block.values.xyz[Y_AXIS] = value; axis_words |= (1<<Y_AXIS); break;
-          case 'Z': word_bit = WORD_Z; gc_block.values.xyz[Z_AXIS] = value; axis_words |= (1<<Z_AXIS); break;
+          case 'Z': switch (gc_state.z_select) {
+          	  	  	  case MAP_P0 :
+          	  	  	  case MAP_P1 :
+          	  	  	  case MAP_P2 : word_bit = WORD_Z;
+          	  	                    gc_block.values.xyz[Z_AXIS] = value;
+          	  	            	  	axis_words |= (1<<Z_AXIS);
+          	  	            	  	break;
+
+          	  	     case MAP_P3 :
+          	  	     case MAP_P4 : word_bit = WORD_U;
+          	  	            	   gc_block.values.xyz[U_AXIS] = value;
+          	  	            	   axis_words |= (1<<U_AXIS);
+          	  	            	   break;
+          	  	  	}
+          	  	  	break;
+          case 'U': if (gc_state.z_select == MAP_P0) {
+        	  	  	  word_bit = WORD_U; gc_block.values.xyz[U_AXIS] = value; axis_words |= (1<<U_AXIS);
+          	  	    }
+          	  	  	break;
+          case 'V': if (gc_state.z_select == MAP_P0) {
+        	  	  	  word_bit = WORD_V; gc_block.values.xyz[V_AXIS] = value; axis_words |= (1<<V_AXIS);
+          	  	    }
+          	  	  	break;
+          case 'W': if (gc_state.z_select == MAP_P0) {
+        	  	  	  word_bit = WORD_W; gc_block.values.xyz[W_AXIS] = value; axis_words |= (1<<W_AXIS);
+                    }
+          	  	    break;
+          case 'A': switch (gc_state.z_select) {
+	  	  	        	case MAP_P0 :
+	  	  	        	case MAP_P1 : word_bit = WORD_A;
+	  	  	        				  gc_block.values.xyz[A_AXIS] = value;
+	  	  	        				  axis_words |= (1<<A_AXIS);
+	  	  	        				  break;
+	  	  	        	case MAP_P2 : word_bit = WORD_B;
+	  	  	        	  	  	      gc_block.values.xyz[B_AXIS] = value;
+	  	  	        	  	  	      axis_words |= (1<<B_AXIS);
+	  	  	        	  	  	      break;
+	  	  	        	case MAP_P3 : word_bit = WORD_C;
+	  	  	    	  	  	          gc_block.values.xyz[C_AXIS] = value;
+	  	  	    	  	  	          axis_words |= (1<<C_AXIS);
+	  	  	    	  	  	          break;
+	  	  	        	case MAP_P4 : word_bit = WORD_V;
+	  	  		  	  	        	  gc_block.values.xyz[V_AXIS] = value;
+	  	  		  	  	        	  axis_words |= (1<<V_AXIS);
+	  	  		  	  	        	  break;
+          	  	  	}
+                    break;
+          case 'B': if (gc_state.z_select == MAP_P0) {
+        	  	  	  word_bit = WORD_B; gc_block.values.xyz[B_AXIS] = value; axis_words |= (1<<B_AXIS);
+          	  	    }
+          	  	    break;
+          case 'C': if (gc_state.z_select == MAP_P0) {
+        	  	  	  word_bit = WORD_C; gc_block.values.xyz[C_AXIS] = value; axis_words |= (1<<C_AXIS);
+          	  	    }
+          	  	  	break;
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND);
         }
 
@@ -865,7 +921,7 @@ uint8_t gc_execute_line(char *line)
   } else {
     bit_false(value_words,(bit(WORD_N)|bit(WORD_F)|bit(WORD_S)|bit(WORD_T))); // Remove single-meaning value words.
   }
-  if (axis_command) { bit_false(value_words,(bit(WORD_X)|bit(WORD_Y)|bit(WORD_Z))); } // Remove axis words.
+  if (axis_command) { bit_false(value_words,(bit(WORD_X)|bit(WORD_Y)|bit(WORD_Z)|bit(WORD_A)|bit(WORD_B)|bit(WORD_C)|bit(WORD_U)|bit(WORD_V)|bit(WORD_W))); } // Remove axis words.
   if (value_words) { FAIL(STATUS_GCODE_UNUSED_WORDS); } // [Unused words]
 
   /* -------------------------------------------------------------------------------------
@@ -944,6 +1000,10 @@ uint8_t gc_execute_line(char *line)
     		break;
     		case PLC_WAIT_INPUT_EVENT : plc_wait_input_event((uint32_t)gc_block.values.p, (uint32_t)gc_block.values.l, (uint32_t)gc_block.values.q);
     		break;
+    	}
+
+    	if (gc_block.modal.map_z == MAP_Z) {
+    		gc_state.z_select = (uint8_t)gc_block.values.p;
     	}
   }
 
@@ -1173,7 +1233,7 @@ uint8_t gc_execute_line(char *line)
 
   // TODO: % to denote start of program.
 
-  return(STATUS_OK);
+ return(STATUS_OK);
 }
 
 

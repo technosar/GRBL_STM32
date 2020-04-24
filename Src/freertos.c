@@ -9,7 +9,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2019 STMicroelectronics International N.V. 
+  * Copyright (c) 2020 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -54,6 +54,7 @@
 /* USER CODE BEGIN Includes */     
 #include "..\grbl\grbl.h"
 extern ADC_HandleTypeDef hadc1;
+extern setup _setup;
 /* USER CODE END Includes */
 
 /* Variables -----------------------------------------------------------------*/
@@ -118,7 +119,7 @@ void StartDefaultTask(void const * argument)
   /* USER CODE BEGIN StartDefaultTask */
   // Start all ADC
   HAL_ADC_Start(&hadc1);
-  //@HAL_ADC_Start_DMA(&hadc1, (uint32_t*)_setup.parameters_ext, 5);
+  HAL_ADC_Start_DMA(&hadc1, (uint32_t*)_setup.parameters_ext, 5);
 
   /* USER CODE BEGIN StartDefaultTask */
   delay_ms(100);

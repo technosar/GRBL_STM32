@@ -81,6 +81,12 @@
 #define CMD_COOLANT_FLOOD_OVR_TOGGLE 0xA0
 #define CMD_COOLANT_MIST_OVR_TOGGLE 0xA1
 
+#define CMD_FEED_OVR      0xE0
+#define CMD_RAPID_OVR     0xE1
+#define CMD_SPINDLE_OVR   0xE2
+
+#define CMD_SET_OUTPUT    0xD0
+
 // If homing is enabled, homing init lock sets Grbl into an alarm state upon power up. This forces
 // the user to perform the homing cycle (or override the locks) before doing anything else. This is
 // mainly a safety feature to remind the user to home, since position is unknown to Grbl.

@@ -10,7 +10,7 @@
   * inserted by the user or by software development tools
   * are owned by their respective copyright owners.
   *
-  * Copyright (c) 2019 STMicroelectronics International N.V. 
+  * Copyright (c) 2020 STMicroelectronics International N.V. 
   * All rights reserved.
   *
   * Redistribution and use in source and binary forms, with or without 
@@ -73,12 +73,13 @@ void MX_GPIO_Init(void)
   GPIO_InitTypeDef GPIO_InitStruct;
 
   /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOE_CLK_ENABLE();
   __HAL_RCC_GPIOF_CLK_ENABLE();
   __HAL_RCC_GPIOH_CLK_ENABLE();
   __HAL_RCC_GPIOC_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
-  __HAL_RCC_GPIOE_CLK_ENABLE();
+  __HAL_RCC_GPIOG_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
@@ -91,8 +92,18 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOB, STEPPERS_DISABLE_BIT_Pin|LED_RX_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOD, CLK_X_Pin|DIR_X_Pin|CLK_Y_Pin|DIR_Y_Pin 
-                          |CLK_Z_Pin|DIR_Z_Pin|CLK_A_Pin|DIR_A_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOG, CLK_X_Pin|DIR_X_Pin|CLK_Y_Pin|DIR_Y_Pin 
+                          |CLK_Z_Pin|DIR_Z_Pin|CLK_A_Pin|DIR_A_Pin 
+                          |CLK_B_Pin|DIR_B_Pin|CLK_C_Pin|DIR_C_Pin 
+                          |CLK_U_Pin|DIR_U_Pin|CLK_V_Pin|DIR_V_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PEPin PEPin PEPin PEPin 
+                           PEPin PEPin PEPin PEPin */
+  GPIO_InitStruct.Pin = LIMIT_Z_Pin|LIMIT_A_Pin|LIMIT_B_Pin|LIMIT_C_Pin 
+                          |LIMIT_U_Pin|LIMIT_V_Pin|LIMIT_X_Pin|LIMIT_Y_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = LED_TX_Pin;
@@ -115,20 +126,21 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PEPin PEPin PEPin */
-  GPIO_InitStruct.Pin = LIMIT_X_Pin|LIMIT_Y_Pin|LIMIT_Z_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
-  GPIO_InitStruct.Pull = GPIO_PULLUP;
-  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = UI0_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : PGPin PGPin PGPin PGPin 
+                           PGPin PGPin PGPin PGPin 
+                           PGPin PGPin PGPin PGPin 
+                           PGPin PGPin PGPin PGPin */
+  GPIO_InitStruct.Pin = CLK_X_Pin|DIR_X_Pin|CLK_Y_Pin|DIR_Y_Pin 
+                          |CLK_Z_Pin|DIR_Z_Pin|CLK_A_Pin|DIR_A_Pin 
+                          |CLK_B_Pin|DIR_B_Pin|CLK_C_Pin|DIR_C_Pin 
+                          |CLK_U_Pin|DIR_U_Pin|CLK_V_Pin|DIR_V_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(UI0_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PEPin PEPin PEPin PEPin */
-  GPIO_InitStruct.Pin = UI1_Pin|UI2_Pin|PROBE_Pin|UI3_Pin;
+  /*Configure GPIO pins : PEPin PEPin */
+  GPIO_InitStruct.Pin = PROBE_Pin|UI3_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
@@ -145,19 +157,7 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PDPin PDPin PDPin PDPin 
-                           PDPin PDPin PDPin PDPin */
-  GPIO_InitStruct.Pin = CLK_X_Pin|DIR_X_Pin|CLK_Y_Pin|DIR_Y_Pin 
-                          |CLK_Z_Pin|DIR_Z_Pin|CLK_A_Pin|DIR_A_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
-
   /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI9_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
-
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
