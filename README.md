@@ -6,6 +6,7 @@
 ***
 ``` 
 New features :
+  - 8 axis (X, Y, Z, A, B, C, V and V compatible with OpenPnP project)
   - external SPI EEPROM
   - M200 wait end of motion
   - M62 set outputs
