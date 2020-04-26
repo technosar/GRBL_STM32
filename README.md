@@ -12,7 +12,7 @@ New features :
   - M62 set outputs
   - M63 reset outputs
   - M66 wait input event
-  - M100 map Z axis (select Z ou U axis for OpenPnp project)
+  - M100 map Z axis (select Z or U axis for OpenPnp project)
 ``` 
 ***
 
