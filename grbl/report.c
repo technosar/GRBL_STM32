@@ -190,7 +190,7 @@ void report_grbl_settings() {
         case 0: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.steps_per_mm[idx]); break;
         case 1: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.max_rate[idx]); break;
         case 2: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.acceleration[idx]/(60.0f*60.0f)); break;
-        case 3: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, settings.max_travel[idx]); break;
+        case 3: sprintf(str_report + strlen(str_report), "$%d=%.3f\r\n",  val+idx, -settings.max_travel[idx]); break;
       }
     }
     val += AXIS_SETTINGS_INCREMENT;
