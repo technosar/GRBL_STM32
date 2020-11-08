@@ -111,6 +111,7 @@ uint8_t gc_execute_line(char *line)
   float value;
   int int_value = 0;
   uint16_t mantissa = 0;
+
   if (gc_parser_flags & GC_PARSER_JOG_MOTION) { char_counter = 3; } // Start parsing after `$J=`
   else { char_counter = 0; }
 
@@ -232,6 +233,7 @@ uint8_t gc_execute_line(char *line)
             if (mantissa != 0) { FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); } // [G61.1 not supported]
             // gc_block.modal.control = CONTROL_MODE_EXACT_PATH; // G61
             break;
+
           default: FAIL(STATUS_GCODE_UNSUPPORTED_COMMAND); // [Unsupported G command]
         }
         if (mantissa > 0) { FAIL(STATUS_GCODE_COMMAND_VALUE_NOT_INTEGER); } // [Unsupported or invalid Gxx.x command]
@@ -1153,12 +1155,18 @@ uint8_t gc_execute_line(char *line)
   if (gc_state.modal.motion != MOTION_MODE_NONE) {
     if (axis_command == AXIS_COMMAND_MOTION_MODE) {
       uint8_t gc_update_pos = GC_UPDATE_POS_TARGET;
-      if (gc_state.modal.motion == MOTION_MODE_LINEAR) {
+
+      if (gc_state.modal.motion == MOTION_MODE_LINEAR) // G1
+      {
         mc_line(gc_block.values.xyz, pl_data);
-      } else if (gc_state.modal.motion == MOTION_MODE_SEEK) {
+      }
+      else if (gc_state.modal.motion == MOTION_MODE_SEEK) // G0
+      {
         pl_data->condition |= PL_COND_FLAG_RAPID_MOTION; // Set rapid motion condition flag.
         mc_line(gc_block.values.xyz, pl_data);
-      } else if ((gc_state.modal.motion == MOTION_MODE_CW_ARC) || (gc_state.modal.motion == MOTION_MODE_CCW_ARC)) {
+      }
+      else if ((gc_state.modal.motion == MOTION_MODE_CW_ARC) || (gc_state.modal.motion == MOTION_MODE_CCW_ARC)) // G2, G3
+      {
         mc_arc(gc_block.values.xyz, pl_data, gc_state.position, gc_block.values.ijk, gc_block.values.r,
             axis_0, axis_1, axis_linear, bit_istrue(gc_parser_flags,GC_PARSER_ARC_IS_CLOCKWISE));
       } else {

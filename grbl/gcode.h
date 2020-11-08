@@ -40,6 +40,7 @@
 #define MODAL_GROUP_G8 8 // [G43.1,G49] Tool length offset
 #define MODAL_GROUP_G12 9 // [G54,G55,G56,G57,G58,G59] Coordinate system selection
 #define MODAL_GROUP_G13 10 // [G61] Control mode
+#define MODAL_GROUP_G16 11 // [G68, G69] Rotation
 
 #define MODAL_GROUP_M4 11  // [M0,M1,M2,M30] Stopping
 #define MODAL_GROUP_M7 12  // [M3,M4,M5] Spindle turning
@@ -211,6 +212,7 @@ typedef struct {
   uint8_t override;        // {M56}
   uint8_t plcio;           // {M62,M63}
   uint8_t map_z;           // {M100}
+  uint8_t rotate;          // {G68, G69}
 } gc_modal_t;
 
 typedef struct {
